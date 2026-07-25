@@ -100,9 +100,12 @@ void loop() {
     if (holdTime >= WIFI_DISABLE_MS && !wifiActionTaken) {
       // Keluar dari Dasbor (AP -> STA)
       if (webServer.isActive()) {
+        Serial.println("[MAIN]: Menghentikan WebServer...");
         webServer.stop();
         buzzer.wifiOff(); // Buzzer dibunyikan di sini, saat AP mati (Keluar Dasbor)
-        delay(1000); // Jeda 1 detik
+        
+        // Jeda 2 detik untuk memastikan stack WiFi benar-benar bersih
+        delay(2000); 
         
         // PENTING: Reload config agar yakin membaca data terbaru dari Flash
         otaWifi.begin(); 
