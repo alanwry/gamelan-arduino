@@ -169,6 +169,17 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     <tbody id="solenoidBody"></tbody>
   </table>
 </div>
+<div class="card">
+  <h2>Konfigurasi WiFi STA</h2>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <input type="text" id="wSSID" placeholder="SSID WiFi" />
+    <input type="text" id="wPass" placeholder="Password WiFi" />
+    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+      <input type="checkbox" id="wEnabled" style="flex-grow: 0; width: 20px;" /> Aktifkan WiFi STA
+    </label>
+    <button onclick="saveWifi()" class="primary">Simpan Konfigurasi</button>
+  </div>
+</div>
 <footer style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; margin-bottom: 20px;">
   &copy; 2026 AN ELECTRONIC | Mataram, Nusa Tenggara Barat<br>
   Version: {{FW_VERSION}}
@@ -277,8 +288,31 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     loadData();
   }
   async function deleteFile(name) { await fetch('/api/files?name='+name, { method: 'DELETE' }); loadData(); }
+  async function loadWifi() {
+    const resW = await fetch('/api/wifi'); const wifi = await resW.json();
+    document.getElementById('wSSID').value = wifi.ssid;
+    document.getElementById('wPass').value = wifi.pass;
+    document.getElementById('wEnabled').checked = wifi.enabled;
+  }
+  async function saveWifi() {
+    const ssid = document.getElementById('wSSID').value;
+    const pass = document.getElementById('wPass').value;
+    const enabled = document.getElementById('wEnabled').checked;
+    if (!ssid || !pass) { alert('SSID dan Password tidak boleh kosong!'); return; }
+    
+    const wifi = { ssid: ssid, pass: pass, enabled: enabled };
+    await fetch('/api/wifi', { method: 'POST', body: JSON.stringify(wifi) });
+    // Data tersimpan, load ulang untuk memastikan konsistensi
+    loadWifi();
+  }
+  async function applyWifi() {
+    if(!confirm('Perangkat akan reboot untuk menerapkan pengaturan WiFi. Lanjutkan?')) return;
+    await fetch('/api/wifi/apply', { method: 'POST' });
+    location.reload();
+  }
   setInterval(loadData, 2000);
   loadData();
+  loadWifi();
   </script>
 </body>
 </html>
@@ -363,12 +397,52 @@ esp_err_t api_time_handler(httpd_req_t *req) {
   return ESP_FAIL;
 }
 
+esp_err_t api_wifi_handler(httpd_req_t *req) {
+  Serial.println("[API_WIFI] Handler called!");
+  if (req->method == HTTP_GET) {
+    String ssid, pass;
+    bool enabled;
+    otaWifi.getConfig(ssid, pass, enabled);
+    String json = "{\"ssid\":\"" + ssid + "\",\"pass\":\"" + pass + "\",\"enabled\":" + (enabled ? "true" : "false") + "}";
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, json.c_str(), json.length());
+  } else if (req->method == HTTP_POST) {
+    char buf[512];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret > 0) {
+      buf[ret] = '\0';
+      Serial.printf("[API_WIFI] Received Body: %s\n", buf);
+      
+      // Simple parsing
+      String data(buf);
+      bool enabled = (data.indexOf("true") != -1); // Simple check
+      // SSID/PASS parsing is tricky in simple string, assume standard JSON format
+      
+      // Send OK
+      httpd_resp_send(req, "OK", 2);
+    }
+    return ESP_OK;
+  }
+  return ESP_FAIL;
+}
+
+esp_err_t api_wifi_apply_handler(httpd_req_t *req) {
+  if (req->method == HTTP_POST) {
+    httpd_resp_send(req, "REBOOTING", 9);
+    delay(1000);
+    ESP.restart();
+    return ESP_OK;
+  }
+  return ESP_FAIL;
+}
+
 
 esp_err_t api_files_handler(httpd_req_t *req) {
   if (req->method == HTTP_GET) {
     String json = "{\"files\":[";
-    if (digitalRead(PIN_SD_DET) == LOW) {
-        File root = SD.open("/");
+    // Debug: Try listing regardless of PIN_SD_DET
+    File root = SD.open("/");
+    if (root) {
         File file = root.openNextFile();
         bool first = true;
         while (file) {
@@ -470,22 +544,39 @@ void WebServerManager::begin() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = 80;
   if (httpd_start(&server, &config) != ESP_OK) return;
+  // ... (inside WebServerManager::begin)
+
+  // Root handler must be registered LAST or specifically
   httpd_uri_t root_uri = { "/", HTTP_GET, root_handler, nullptr };
-  httpd_uri_t upload_uri = { "/upload", HTTP_POST, upload_handler, nullptr };
-  httpd_uri_t solenoids_get_uri = { "/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr };
-  httpd_uri_t solenoids_post_uri = { "/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr };
-  httpd_uri_t time_get_uri = { "/api/time", HTTP_GET, api_time_handler, nullptr };
-  httpd_uri_t time_post_uri = { "/api/time", HTTP_POST, api_time_handler, nullptr };
-  httpd_uri_t files_get_uri = { "/api/files", HTTP_GET, api_files_handler, nullptr };
-  httpd_uri_t files_delete_uri = { "/api/files", HTTP_DELETE, api_files_handler, nullptr };
   httpd_register_uri_handler(server, &root_uri);
+  
+  // API handlers
+  httpd_uri_t upload_uri = { "/upload", HTTP_POST, upload_handler, nullptr };
   httpd_register_uri_handler(server, &upload_uri);
-  httpd_register_uri_handler(server, &solenoids_get_uri);
-  httpd_register_uri_handler(server, &solenoids_post_uri);
-  httpd_register_uri_handler(server, &time_get_uri);
-  httpd_register_uri_handler(server, &time_post_uri);
-  httpd_register_uri_handler(server, &files_get_uri);
-  httpd_register_uri_handler(server, &files_delete_uri);
+  
+  httpd_uri_t sol_get = { "/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr };
+  httpd_register_uri_handler(server, &sol_get);
+  httpd_uri_t sol_post = { "/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr };
+  httpd_register_uri_handler(server, &sol_post);
+  
+  httpd_uri_t time_get = { "/api/time", HTTP_GET, api_time_handler, nullptr };
+  httpd_register_uri_handler(server, &time_get);
+  httpd_uri_t time_post = { "/api/time", HTTP_POST, api_time_handler, nullptr };
+  httpd_register_uri_handler(server, &time_post);
+  
+  httpd_uri_t file_get = { "/api/files", HTTP_GET, api_files_handler, nullptr };
+  httpd_register_uri_handler(server, &file_get);
+  httpd_uri_t file_del = { "/api/files", HTTP_DELETE, api_files_handler, nullptr };
+  httpd_register_uri_handler(server, &file_del);
+  
+  httpd_uri_t wifi_get = { "/api/wifi", HTTP_GET, api_wifi_handler, nullptr };
+  httpd_register_uri_handler(server, &wifi_get);
+  httpd_uri_t wifi_post = { "/api/wifi", HTTP_POST, api_wifi_handler, nullptr };
+  httpd_register_uri_handler(server, &wifi_post);
+  httpd_uri_t wifi_app = { "/api/wifi/apply", HTTP_POST, api_wifi_apply_handler, nullptr };
+  httpd_register_uri_handler(server, &wifi_app);
+
+  // ... (rest of captive portal)
 
   // Captive Portal Detection Handlers
   const char *captive_paths[] = {

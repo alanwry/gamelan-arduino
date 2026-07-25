@@ -9,18 +9,23 @@ void OtaWifiManager::begin() {
   password = prefs.getString("pass", "");
   staEnabled = prefs.getBool("staEnabled", false);
   prefs.end();
+  Serial.printf("[OTA_WIFI] INIT: SSID='%s', STA_ENABLED=%d\n", ssid.c_str(), staEnabled);
 }
 
 void OtaWifiManager::beginSTA() {
-  if (ssid.length() == 0 || password.length() == 0) return;
+  if (ssid.length() == 0 || password.length() == 0) {
+    Serial.println("[OTA_WIFI]: SSID/Password kosong, STA tidak dimulai.");
+    return;
+  }
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.c_str(), password.c_str());
-  Serial.printf("[OTA_WIFI]: Menghubungkan ke %s...\n", ssid.c_str());
+  Serial.printf("[OTA_WIFI]: Mencoba menghubungkan ke SSID: %s\n", ssid.c_str());
 
   ArduinoOTA.setHostname(OTA_HOSTNAME);
   ArduinoOTA.setPassword(OTA_PASSWORD);
   ArduinoOTA.begin();
+  Serial.println("[OTA_WIFI]: Mode STA diinisialisasi.");
 }
 
 void OtaWifiManager::stopSTA() {
@@ -45,7 +50,7 @@ void OtaWifiManager::saveConfig(String _ssid, String _pass, bool _staEnabled) {
   prefs.putString("pass", password);
   prefs.putBool("staEnabled", staEnabled);
   prefs.end();
-  Serial.println("[OTA_WIFI]: Konfigurasi disimpan.");
+  Serial.printf("[OTA_WIFI] SAVED: SSID='%s', STA_ENABLED=%d\n", ssid.c_str(), staEnabled);
 }
 
 void OtaWifiManager::getConfig(String &_ssid, String &_pass, bool &_staEnabled) {

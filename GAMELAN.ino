@@ -97,10 +97,19 @@ void loop() {
       // Keluar dari Dasbor (AP -> STA)
       if (webServer.isActive()) {
         webServer.stop();
+        buzzer.wifiOff(); // Buzzer dibunyikan di sini, saat AP mati (Keluar Dasbor)
         delay(1000); // Jeda 1 detik
+        
+        // PENTING: Reload config agar yakin membaca data terbaru dari Flash
+        otaWifi.begin(); 
+        
+        Serial.printf("[MAIN] Transisi AP->STA. STA_ENABLED=%d\n", otaWifi.isStaEnabled());
+
         if (otaWifi.isStaEnabled()) {
+           Serial.println("[MAIN]: STA Aktif, mencoba terhubung...");
            otaWifi.beginSTA();
-           buzzer.wifiOff(); // Kembalikan buzzer
+        } else {
+           Serial.println("[MAIN]: WiFi STA dinonaktifkan.");
         }
         wifiActionTaken = true;
       }
