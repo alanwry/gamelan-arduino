@@ -1,0 +1,30 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <Arduino.h>
+
+#define FW_VERSION "v2.0.1"
+#define COPYRIGHT_INFO "&copy; 2026 AN ELECTRONIC | Mataram, Nusa Tenggara Barat"
+#define OTA_HOSTNAME "gamelan"
+#define OTA_PASSWORD "nana1111"
+
+#define MAX_SOLENOID 20
+
+#define LCD_COL 16
+#define LCD_ROW 2
+
+#define LCD_ADDRESS 0x27
+#define PCF8574_ADDRESS 0x20
+
+#define BUTTON_DEBOUNCE 40
+#define WIFI_ENABLE_MS 2000
+#define WIFI_DISABLE_MS 5000
+
+#define WIFI_SSID "ESP32 PORTAL"
+#define WIFI_PASSWORD "esp32-portal"
+
+#define MAX_FILENAME 128
+
+#define MAX_FILES 100
+
+#endif
