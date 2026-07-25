@@ -555,18 +555,22 @@ esp_err_t upload_handler(httpd_req_t *req) {
   return ESP_FAIL;
 }
 
+void WebServerManager::startAP() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
+  dnsServer.start(53, "*", WiFi.softAPIP());
+  begin();
+}
+
 void WebServerManager::begin() {
   if (active) return;
   Serial.println("[WEBSERVER]: Inisialisasi Server...");
 
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
-  dnsServer.start(53, "*", WiFi.softAPIP());
   MDNS.begin("mydashboard");
   
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = 80;
-  config.max_uri_handlers = 24; // PENTING: Tingkatkan batas maksimum handler (Default ESP32 hanya 8)
+  config.max_uri_handlers = 24; 
   if (httpd_start(&server, &config) != ESP_OK) return;
 
   // 1. Root Handler (Explicit for /)
@@ -610,7 +614,7 @@ void WebServerManager::begin() {
     httpd_register_uri_handler(server, &uri);
   }
 
-  Serial.println("[WEBSERVER]: Server aktif di http://mydashboard.local/");
+  Serial.println("[WEBSERVER]: Server aktif.");
   active = true;
 }
 

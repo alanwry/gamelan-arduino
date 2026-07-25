@@ -55,6 +55,10 @@ void setup() {
   if (otaWifi.isStaEnabled()) {
     Serial.println("[MAIN]: STA aktif otomatis dari boot.");
     otaWifi.beginSTA();
+  } else {
+    // Jika STA tidak aktif, pastikan web server TIDAK berjalan otomatis di sini,
+    // atau jika ingin tetap bisa diakses melalui AP, panggil webServer.startAP().
+    // Karena tujuan utamanya adalah STA, kita biarkan saja.
   }
   sdcard.scan();
 
@@ -124,7 +128,8 @@ void loop() {
       // Masuk ke Dasbor (STA -> AP)
       if (!webServer.isActive()) {
         otaWifi.stopSTA(); // Matikan STA dulu
-        webServer.begin(); // Baru hidupkan AP
+        delay(2000); // Jeda transisi
+        webServer.startAP(); // Baru hidupkan AP + Server
         buzzer.wifiOn(); // Kembalikan buzzer
         wifiActionTaken = true;
       }
