@@ -52,6 +52,10 @@ void setup() {
   led.begin(PIN_LED);
 
   otaWifi.begin();
+  if (otaWifi.isStaEnabled()) {
+    Serial.println("[MAIN]: STA aktif otomatis dari boot.");
+    otaWifi.beginSTA();
+  }
   sdcard.scan();
 
   player.begin();
