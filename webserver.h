@@ -6,6 +6,7 @@
 class WebServerManager {
 public:
   void begin();
+  void startAP();
 
   void stop();
 
