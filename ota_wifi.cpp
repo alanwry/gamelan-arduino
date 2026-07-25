@@ -21,7 +21,9 @@ void OtaWifiManager::beginSTA() {
 }
 
 void OtaWifiManager::stopSTA() {
+  ArduinoOTA.end();
   WiFi.disconnect(true);
+  delay(1000);
   WiFi.mode(WIFI_OFF);
   otaStarted = false;
 }
