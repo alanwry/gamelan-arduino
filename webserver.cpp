@@ -398,7 +398,6 @@ esp_err_t api_time_handler(httpd_req_t *req) {
 }
 
 esp_err_t api_wifi_handler(httpd_req_t *req) {
-  Serial.println("[API_WIFI] Handler called!");
   if (req->method == HTTP_GET) {
     String ssid, pass;
     bool enabled;
@@ -411,14 +410,37 @@ esp_err_t api_wifi_handler(httpd_req_t *req) {
     int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
     if (ret > 0) {
       buf[ret] = '\0';
+      String data(buf);
       Serial.printf("[API_WIFI] Received Body: %s\n", buf);
       
-      // Simple parsing
-      String data(buf);
-      bool enabled = (data.indexOf("true") != -1); // Simple check
-      // SSID/PASS parsing is tricky in simple string, assume standard JSON format
+      // Parse JSON: {"ssid":"SOLAH MEDICAL AI","pass":"solahmedical2026","enabled":true}
+      String ssid = "";
+      String pass = "";
+      bool enabled = false;
       
-      // Send OK
+      int sStart = data.indexOf("\"ssid\":\"");
+      if (sStart != -1) {
+        sStart += 8;
+        int sEnd = data.indexOf("\"", sStart);
+        if (sEnd != -1) ssid = data.substring(sStart, sEnd);
+      }
+      
+      int pStart = data.indexOf("\"pass\":\"");
+      if (pStart != -1) {
+        pStart += 8;
+        int pEnd = data.indexOf("\"", pStart);
+        if (pEnd != -1) pass = data.substring(pStart, pEnd);
+      }
+      
+      int eStart = data.indexOf("\"enabled\":");
+      if (eStart != -1) {
+        eStart += 10;
+        enabled = (data.substring(eStart, eStart + 4) == "true");
+      }
+      
+      Serial.printf("[API_WIFI] Parsed - SSID: '%s', Pass: '%s', Enabled: %d\n", ssid.c_str(), pass.c_str(), enabled);
+      
+      otaWifi.saveConfig(ssid, pass, enabled);
       httpd_resp_send(req, "OK", 2);
     }
     return ESP_OK;
