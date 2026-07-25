@@ -482,6 +482,7 @@ esp_err_t api_files_handler(httpd_req_t *req) {
 }
 
 esp_err_t root_handler(httpd_req_t *req) {
+  Serial.printf("[WEBSERVER] Request URI: %s\n", req->uri);
   String page = String(htmlPage);
   page.replace("{{FW_VERSION}}", FW_VERSION);
   httpd_resp_set_type(req, "text/html");
@@ -534,64 +535,60 @@ esp_err_t upload_handler(httpd_req_t *req) {
 
 void WebServerManager::begin() {
   if (active) return;
-  Serial.println("[WEBSERVER]: Akses http://mydashboard.local/ untuk konfigurasi");
+  Serial.println("[WEBSERVER]: Inisialisasi Server...");
 
   WiFi.mode(WIFI_AP);
-  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
   dnsServer.start(53, "*", WiFi.softAPIP());
   MDNS.begin("mydashboard");
+  
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = 80;
+  config.max_uri_handlers = 24; // PENTING: Tingkatkan batas maksimum handler (Default ESP32 hanya 8)
   if (httpd_start(&server, &config) != ESP_OK) return;
-  // ... (inside WebServerManager::begin)
 
-  // Root handler must be registered LAST or specifically
+  // 1. Root Handler (Explicit for /)
   httpd_uri_t root_uri = { "/", HTTP_GET, root_handler, nullptr };
   httpd_register_uri_handler(server, &root_uri);
-  
-  // API handlers
+
+  // 2. API Handlers
   httpd_uri_t upload_uri = { "/upload", HTTP_POST, upload_handler, nullptr };
   httpd_register_uri_handler(server, &upload_uri);
   
-  httpd_uri_t sol_get = { "/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr };
+  // API Solenoids
+  static httpd_uri_t sol_get = { "/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr };
   httpd_register_uri_handler(server, &sol_get);
-  httpd_uri_t sol_post = { "/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr };
+  static httpd_uri_t sol_post = { "/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr };
   httpd_register_uri_handler(server, &sol_post);
   
-  httpd_uri_t time_get = { "/api/time", HTTP_GET, api_time_handler, nullptr };
+  // API Time
+  static httpd_uri_t time_get = { "/api/time", HTTP_GET, api_time_handler, nullptr };
   httpd_register_uri_handler(server, &time_get);
-  httpd_uri_t time_post = { "/api/time", HTTP_POST, api_time_handler, nullptr };
+  static httpd_uri_t time_post = { "/api/time", HTTP_POST, api_time_handler, nullptr };
   httpd_register_uri_handler(server, &time_post);
   
-  httpd_uri_t file_get = { "/api/files", HTTP_GET, api_files_handler, nullptr };
+  // API Files
+  static httpd_uri_t file_get = { "/api/files", HTTP_GET, api_files_handler, nullptr };
   httpd_register_uri_handler(server, &file_get);
-  httpd_uri_t file_del = { "/api/files", HTTP_DELETE, api_files_handler, nullptr };
+  static httpd_uri_t file_del = { "/api/files", HTTP_DELETE, api_files_handler, nullptr };
   httpd_register_uri_handler(server, &file_del);
   
-  httpd_uri_t wifi_get = { "/api/wifi", HTTP_GET, api_wifi_handler, nullptr };
+  // API WiFi
+  static httpd_uri_t wifi_get = { "/api/wifi", HTTP_GET, api_wifi_handler, nullptr };
   httpd_register_uri_handler(server, &wifi_get);
-  httpd_uri_t wifi_post = { "/api/wifi", HTTP_POST, api_wifi_handler, nullptr };
+  static httpd_uri_t wifi_post = { "/api/wifi", HTTP_POST, api_wifi_handler, nullptr };
   httpd_register_uri_handler(server, &wifi_post);
-  httpd_uri_t wifi_app = { "/api/wifi/apply", HTTP_POST, api_wifi_apply_handler, nullptr };
+  static httpd_uri_t wifi_app = { "/api/wifi/apply", HTTP_POST, api_wifi_apply_handler, nullptr };
   httpd_register_uri_handler(server, &wifi_app);
 
-  // ... (rest of captive portal)
-
-  // Captive Portal Detection Handlers
-  const char *captive_paths[] = {
-    "/generate_204",
-    "/gen_204",
-    "/redirect",
-    "/connecttest.txt",
-    "/ncsi.txt",
-    "/hotspot-detect.html"
-  };
+  // Captive Portal
+  const char *captive_paths[] = { "/generate_204", "/gen_204", "/redirect", "/connecttest.txt", "/ncsi.txt", "/hotspot-detect.html" };
   for (const char *path : captive_paths) {
     httpd_uri_t uri = { path, HTTP_GET, root_handler, nullptr };
     httpd_register_uri_handler(server, &uri);
   }
 
+  Serial.println("[WEBSERVER]: Server aktif di http://mydashboard.local/");
   active = true;
 }
 
