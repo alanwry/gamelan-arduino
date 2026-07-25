@@ -546,7 +546,14 @@ void WebServerManager::begin() {
   if (httpd_start(&server, &config) != ESP_OK) return;
   // ... (inside WebServerManager::begin)
 
-  // API handlers (Register FIRST)
+  // Root handler must be registered LAST or specifically
+  httpd_uri_t root_uri = { "/", HTTP_GET, root_handler, nullptr };
+  httpd_register_uri_handler(server, &root_uri);
+  
+  // API handlers
+  httpd_uri_t upload_uri = { "/upload", HTTP_POST, upload_handler, nullptr };
+  httpd_register_uri_handler(server, &upload_uri);
+  
   httpd_uri_t sol_get = { "/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr };
   httpd_register_uri_handler(server, &sol_get);
   httpd_uri_t sol_post = { "/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr };
@@ -568,12 +575,6 @@ void WebServerManager::begin() {
   httpd_register_uri_handler(server, &wifi_post);
   httpd_uri_t wifi_app = { "/api/wifi/apply", HTTP_POST, api_wifi_apply_handler, nullptr };
   httpd_register_uri_handler(server, &wifi_app);
-
-  // Root and Upload handlers (Register AFTER API)
-  httpd_uri_t root_uri = { "/", HTTP_GET, root_handler, nullptr };
-  httpd_register_uri_handler(server, &root_uri);
-  httpd_uri_t upload_uri = { "/upload", HTTP_POST, upload_handler, nullptr };
-  httpd_register_uri_handler(server, &upload_uri);
 
   // ... (rest of captive portal)
 
