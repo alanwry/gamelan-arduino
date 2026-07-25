@@ -19,9 +19,18 @@ void OtaWifiManager::beginSTA() {
     return;
   }
 
+  // Konfigurasi IP Statis
+  IPAddress local_IP(192, 168, 11, 11);
+  IPAddress gateway(192, 168, 11, 1);
+  IPAddress subnet(255, 255, 255, 0);
+
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("[OTA_WIFI]: Gagal mengkonfigurasi IP statis.");
+  }
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.c_str(), password.c_str());
-  Serial.printf("[OTA_WIFI]: Menghubungkan ke %s...\n", ssid.c_str());
+  Serial.printf("[OTA_WIFI]: Menghubungkan ke %s dengan IP Statis: 192.168.11.11...\n", ssid.c_str());
   otaStarted = false; 
 }
 
