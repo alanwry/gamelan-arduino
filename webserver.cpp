@@ -192,15 +192,51 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   </div>
   <button onclick="saveWifi()" class="primary">Save and Apply</button>
 </div>
+<div class="card">
+  <h2>OTA Update</h2>
+  <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+    <div style="display: flex; justify-content: space-between;">
+        <span>Version: <strong>{{FW_VERSION}}</strong></span>
+        <span id="lastUpdate" style="font-size: 0.9rem; color: var(--text-muted);">Last: -</span>
+    </div>
+    <div style="background: #334155; border-radius: 8px; height: 16px; overflow: hidden;">
+        <div id="otaBar" style="background: var(--accent); height: 100%; width: 0%; transition: width 0.3s;"></div>
+    </div>
+    <input type="file" id="otaInput" accept=".bin" style="display:none;" onchange="handleOta(this.files[0])" />
+    <button onclick="document.getElementById('otaInput').click()" class="primary">Update Firmware</button>
+  </div>
 </div>
 <footer style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; margin-bottom: 20px;">
-
-  &copy; 2026 AN ELECTRONIC | Mataram, Nusa Tenggara Barat<br>
-  Version: {{FW_VERSION}}
+  &copy; 2026 AN ELECTRONIC | Mataram, Nusa Tenggara Barat
 </footer>
 <script>
   let lastFiles = [];
+  async function handleOta(file) {
+    if (!file) return;
+    const bar = document.getElementById('otaBar');
+    bar.style.width = '0%';
+    const formData = new FormData();
+    formData.append("update", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/update", true);
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) bar.style.width = (e.loaded / e.total) * 100 + '%';
+    };
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            document.getElementById('lastUpdate').innerText = 'Last: ' + new Date().toLocaleTimeString();
+            alert('Update Success! Restarting...');
+            location.reload();
+        } else {
+            alert('Update Failed');
+        }
+    };
+    xhr.send(formData);
+  }
   async function loadData() {
+// ...
+
       const t = Date.now();
       try {
           const resS = await fetch('/api/solenoids?t=' + t); const solenoids = await resS.json();
@@ -642,6 +678,32 @@ void WebServerManager::begin() {
                                nullptr};
   httpd_uri_t wifi_post_uri = {"/api/wifi", HTTP_POST, api_wifi_handler,
                                nullptr};
+  httpd_uri_t ota_uri = {"/update", HTTP_POST, [](httpd_req_t *req) {
+      if (WiFi.getMode() != WIFI_STA) return httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "OTA only in STA mode");
+      
+      static size_t updateSize = 0;
+      if (req->method == HTTP_POST) {
+        if (!Update.isRunning()) {
+          updateSize = req->content_len;
+          if (!Update.begin(updateSize)) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA Begin Failed");
+        }
+        
+        char *buf = (char *)malloc(1024);
+        size_t recv;
+        while ((recv = httpd_req_recv(req, buf, 1024)) > 0) {
+            Update.write((uint8_t*)buf, recv);
+        }
+        free(buf);
+        
+        if (Update.end()) {
+            httpd_resp_send(req, "OK", 2);
+            ESP.restart();
+        } else {
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA End Failed");
+        }
+      }
+      return ESP_OK;
+  }, nullptr};
   httpd_register_uri_handler(server, &root_uri);
   httpd_register_uri_handler(server, &upload_uri);
   httpd_register_uri_handler(server, &solenoids_get_uri);
@@ -652,6 +714,8 @@ void WebServerManager::begin() {
   httpd_register_uri_handler(server, &files_delete_uri);
   httpd_register_uri_handler(server, &wifi_get_uri);
   httpd_register_uri_handler(server, &wifi_post_uri);
+  httpd_register_uri_handler(server, &ota_uri);
+
 
   // Captive Portal Detection Handlers
   const char *captive_paths[] = {"/generate_204", "/gen_204",
