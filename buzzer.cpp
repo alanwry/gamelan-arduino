@@ -1,47 +1,90 @@
+// buzzer.cpp uses extern pcf from button.h
 #include "buzzer.h"
+#include "button.h"
+#include "pins.h"
 
 BuzzerManager buzzer;
 
 void BuzzerManager::begin(uint8_t pin) {
   _pin = pin;
-  pinMode(_pin, OUTPUT);
-  digitalWrite(_pin, LOW);
+  if (button.isInitialized()) {
+    pcf.pinMode(_pin, OUTPUT);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::beep() {
-  tone(_pin, 2000, 50);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(50);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::startup() {
-  tone(_pin, 1000, 100);
-  delay(150);
-  tone(_pin, 1500, 100);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+    delay(150);
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::wifiOn() {
-  tone(_pin, 2000, 100);
-  delay(150);
-  tone(_pin, 2000, 100);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+    delay(150);
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::wifiOff() {
-  tone(_pin, 1000, 100);
-  delay(150);
-  tone(_pin, 500, 200);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+    delay(150);
+    pcf.digitalWrite(_pin, HIGH);
+    delay(200);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::uploadSuccess() {
-  tone(_pin, 1500, 100);
-  delay(150);
-  tone(_pin, 2500, 200);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+    delay(150);
+    pcf.digitalWrite(_pin, HIGH);
+    delay(200);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::modeAuto() {
-  tone(_pin, 2500, 100);
-  delay(100);
-  tone(_pin, 2500, 100);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+    delay(100);
+    pcf.digitalWrite(_pin, HIGH);
+    delay(100);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }
 
 void BuzzerManager::modeManual() {
-  tone(_pin, 1000, 200);
+  if (button.isInitialized()) {
+    pcf.digitalWrite(_pin, HIGH);
+    delay(200);
+    pcf.digitalWrite(_pin, LOW);
+  }
 }

@@ -27,35 +27,30 @@ void setup() {
   Serial.println(FW_VERSION);
   Serial.println("===================================");
 
-  buzzer.begin(BUZZER_PIN);
+  Wire.begin(LCD_SDA, LCD_SCL);
+
+  buzzer.begin(PIN_BUZZER);
   buzzer.startup();
 
   display.begin();
   display.splash();
 
-  button.begin();
+  button.begin(); // Initializes PCF8574
   wifiManager.begin();
 
   Serial.printf("[SYSTEM]: STA Enabled status: %s\n", wifiManager.isSTAEnabled() ? "ON" : "OFF");
   if (wifiManager.isSTAEnabled()) {
     wifiManager.startSTA();
   }
+  
+  // LED depends on PCF8574, initialized after button.begin()
+  led.begin();
+
   if (!sdcard.begin()) {
     display.error("SD CARD");
-    while (true) {
-      if (digitalRead(PIN_SD_DET) == LOW) {
-        if (sdcard.begin()) {
-          Serial.println("[SDCARD]: Kartu SD berhasil dibaca, melanjutkan...");
-          break;
-        }
-      }
-      delay(500);
-    }
   }
 
   solenoid.begin();
-
-  led.begin(PIN_LED);
 
   sdcard.scan();
 
@@ -67,36 +62,6 @@ void loop() {
 
   button.update();
   sdcard.update();
-
-  static uint32_t lastBlink = 0;
-  static bool blinkState = false;
-  uint32_t now = millis();
-
-  if (digitalRead(PIN_SD_DET) == HIGH) {
-    // SD Lepas: Orange blink (Orange = R:255, G:165, B:0)
-    if (now - lastBlink > 500) {
-      lastBlink = now;
-      blinkState = !blinkState;
-      if (blinkState)
-        led.setColor(255, 165, 0);
-      else
-        led.setColor(0, 0, 0);
-    }
-  } else if (webServer.isActive()) {
-    led.setColor(0, 0, 255); // Blue
-  } else if (player.isPlaying()) {
-    // Playing: Green blink
-    if (now - lastBlink > 500) {
-      lastBlink = now;
-      blinkState = !blinkState;
-      if (blinkState)
-        led.setColor(0, 255, 0);
-      else
-        led.setColor(0, 0, 0);
-    }
-  } else {
-    led.setColor(255, 0, 0); // Red (Idle)
-  }
 
   static bool lastSTAEstate = false;
   static bool firstRun = true;
@@ -164,12 +129,10 @@ void loop() {
     wifiActionTaken = false;
   }
 
-
   webServer.update();
 
   player.update();
-  // ... rest unchanged
-
+  
   solenoid.update();
   display.update();
   led.update();

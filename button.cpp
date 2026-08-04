@@ -7,21 +7,30 @@
 ButtonManager button;
 Adafruit_PCF8574 pcf;
 
-// Mapping array: P0=PLAY_PAUSE, P1=STOP, P2=PREV, P3=NEXT, P4=MODE
-static const uint8_t buttonPin[5] = { PIN_PLAY_PAUSE, PIN_STOP, PIN_PREV, PIN_NEXT, PIN_MODE };
+// Mapping array: P0=PREV, P1=PLAY_PAUSE, P2=NEXT, P3=MODE
+static const uint8_t buttonPin[4] = { PIN_PREV, PIN_PLAY_PAUSE, PIN_NEXT, PIN_MODE };
 
 void ButtonManager::begin() {
+  Serial.println("[BUTTON]: Initializing PCF8574...");
   if (!pcf.begin(PCF8574_ADDRESS, &Wire)) {
     Serial.println("[BUTTON]: Error: PCF8574 gagal terhubung!");
-  } else {
-    Serial.println("[BUTTON]: PCF8574 terhubung.");
+    initialized = false;
+    return;
   }
-  for (int i = 0; i < 5; i++) {
+  
+  Serial.println("[BUTTON]: PCF8574 terhubung.");
+  initialized = true;
+
+  for (int i = 0; i < 4; i++) {
     pcf.pinMode(buttonPin[i], INPUT_PULLUP);
     lastState[i] = pcf.digitalRead(buttonPin[i]);
     pressedState[i] = false;
     lastTime[i] = 0;
   }
+}
+
+bool ButtonManager::isInitialized() {
+  return initialized;
 }
 
 uint32_t ButtonManager::getStopHoldDuration() {
@@ -30,10 +39,12 @@ uint32_t ButtonManager::getStopHoldDuration() {
 }
 
 void ButtonManager::update() {
+  if (!initialized) return;
+
   event = BTN_NONE;
   uint32_t now = millis();
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 4; i++) {
     bool state = pcf.digitalRead(buttonPin[i]);
 
     // Debounce logic
@@ -44,38 +55,36 @@ void ButtonManager::update() {
 
         if (state == LOW) {  // Button Pressed
           pressedState[i] = true;
-          if (i != 4) buzzer.beep();  // Beep if not MODE button
+          // MODE button is index 3 (last one), so check i != 3
+          if (i != 3) buzzer.beep();
 
           switch (i) {
             case 0:
-              event = BTN_START;
-              Serial.println("[BUTTON]: PLAY/PAUSE ditekan");
-              break;
-            case 1:
-              stopHeld = true;
-              stopPressStart = now;
-              Serial.printf("[BUTTON]: STOP hold started at %lu\n", stopPressStart);
-              break;
-            case 2:
               event = BTN_PREV;
               Serial.println("[BUTTON]: PREVIOUS ditekan");
               break;
-            case 3:
+            case 1:
+              event = BTN_START;
+              Serial.println("[BUTTON]: PLAY/PAUSE ditekan");
+              break;
+            case 2:
               event = BTN_NEXT;
               Serial.println("[BUTTON]: NEXT ditekan");
               break;
-            case 4:
-              event = BTN_MODE;
-              Serial.println("[BUTTON]: MODE ditekan");
+            case 3:
+              // For MODE button, handle long press for AP mode entrance
+              stopHeld = true;
+              stopPressStart = now;
+              Serial.printf("[BUTTON]: MODE hold started at %lu\n", stopPressStart);
               break;
           }
         } else {  // Button Released
           pressedState[i] = false;
-          if (i == 1) {  // STOP button logic
-            Serial.printf("[BUTTON]: STOP released. Duration: %lu ms\n", now - stopPressStart);
+          if (i == 3) {  // MODE button logic
+            Serial.printf("[BUTTON]: MODE released. Duration: %lu ms\n", now - stopPressStart);
             if (now - stopPressStart < WIFI_ENABLE_MS) {
-              event = BTN_STOP;
-              Serial.println("[BUTTON]: STOP (short press) event generated");
+              event = BTN_MODE;
+              Serial.println("[BUTTON]: MODE (short press) event generated");
             }
             stopHeld = false;
             stopPressStart = 0;

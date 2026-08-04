@@ -2,11 +2,13 @@
 #define BUTTON_H
 
 #include <Arduino.h>
+#include <Adafruit_PCF8574.h>
+
+extern Adafruit_PCF8574 pcf;
 
 enum ButtonID {
   BTN_NONE = 0,
   BTN_START,
-  BTN_STOP,
   BTN_NEXT,
   BTN_PREV,
   BTN_MODE
@@ -16,17 +18,17 @@ class ButtonManager {
 
 public:
   void begin();
-
   void update();
-
   ButtonID getEvent();
 
   bool getWifiEnableLongPress();
   bool getWifiDisableLongPress();
   uint32_t getStopHoldDuration();
+  bool isInitialized();
 
 private:
   ButtonID event = BTN_NONE;
+  bool initialized = false;
 
   bool lastState[4];
   bool pressedState[4];

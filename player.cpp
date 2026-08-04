@@ -138,6 +138,10 @@ bool Player::isPlaying() {
   return playing;
 }
 
+bool Player::isPaused() {
+  return paused;
+}
+
 void Player::nextFile() {
   stop();
   sdcard.next();
@@ -175,9 +179,6 @@ void Player::update() {
       if (playing) pause();
       else if (paused) play();
       else play();
-      break;
-    case BTN_STOP:
-      stop();
       break;
     case BTN_NEXT:
       nextFile();

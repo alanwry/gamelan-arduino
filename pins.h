@@ -4,11 +4,6 @@
 #include "config.h"
 
 //=========================
-// BUZZER
-//=========================
-#define BUZZER_PIN 41
-
-//=========================
 // LCD
 //=========================
 
@@ -18,23 +13,25 @@
 // SD CARD SPI
 //=========================
 
-#define SD_CS 14//10
+#define SD_CS 14
 #define PIN_SD_CS SD_CS
-#define SD_MOSI 13//11
-#define SD_MISO 11//13
-#define SD_SCK 12//12
+#define SD_MOSI 13
+#define SD_MISO 11
+#define SD_SCK 12
 
 //=========================
-// BUTTON
+// BUTTON / BUZZER / LED (PCF8574)
 //=========================
-// Using PCF8574 I2C I/O Expander
-#define PIN_PLAY_PAUSE 0
-#define PIN_STOP 1
-#define PIN_PREV 2
-#define PIN_NEXT 3
-#define PIN_MODE 4
+#define PIN_PREV 0
+#define PIN_PLAY_PAUSE 1
+#define PIN_NEXT 2
+#define PIN_MODE 3
 
-#define PIN_LED 48
-#define PIN_SD_DET 10  //14
+#define PIN_BUZZER 4
+#define PIN_LED_NET 5
+#define PIN_LED_RUN 6
+#define PIN_LED_ERR 7
+
+#define PIN_SD_DET 10
 
 #endif

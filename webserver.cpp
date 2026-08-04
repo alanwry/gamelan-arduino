@@ -221,10 +221,10 @@ const char htmlPage[] PROGMEM = R"rawliteral(
       } catch (e) { console.error("Wifi load error", e); }
   }
   function formatSize(bytes) {
-      if (bytes < 1024) return bytes + 'b';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + 'kb';
-      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + 'mb';
-      return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'gb';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
   }
   function render(solenoids, files, storage) {
     const sBody = document.getElementById('solenoidBody'); sBody.innerHTML = '';
@@ -233,7 +233,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
             <td class="col-pin left">${s.pin}</td>
             <td class="col-note left">${s.note}</td>
             <td class="col-midi left">${s.midi}</td>
-            <td class="col-s-action center"><button class="danger" onclick="removeSolenoid(${s.pin})">Hapus</button></td>
+            <td class="col-s-action center"><button class="danger" onclick="removeSolenoid(${s.pin})">Delete</button></td>
         </tr>`; 
     });
     const fBody = document.getElementById('fileBody'); fBody.innerHTML = '';
@@ -241,14 +241,14 @@ const char htmlPage[] PROGMEM = R"rawliteral(
         fBody.innerHTML += `<tr>
             <td class="col-name left">${f.name}</td>
             <td class="col-size center">${formatSize(f.size)}</td>
-            <td class="col-action center"><button class="danger" onclick="deleteFile('${f.name}')">Hapus</button></td>
+            <td class="col-action center"><button class="danger" onclick="deleteFile('${f.name}')">Delete</button></td>
         </tr>`; 
     });
     const sInfo = document.getElementById('storageInfo');
     if (storage) {
-        sInfo.innerText = `SD Card: ${formatSize(storage.total)} | Sisa: ${formatSize(storage.free)}`;
+        sInfo.innerText = `SD Card: ${formatSize(storage.total)} | Free: ${formatSize(storage.free)}`;
     } else {
-        sInfo.innerText = 'SD Card tidak terdeteksi';
+        sInfo.innerText = 'SD Card not detected';
     }
   }
   async function saveTime() {
@@ -256,8 +256,8 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     const currentTimeText = document.getElementById('currentTime').innerText;
     const newTime = timeInput.value;
     
-    if (!newTime) { alert('Masukkan durasi baru!'); return; }
-    if (newTime === currentTimeText) { alert('Durasi sama, tidak disimpan'); return; }
+    if (!newTime) { alert('Enter new duration!'); return; }
+    if (newTime === currentTimeText) { alert('Duration is the same, not saved'); return; }
     
     await fetch('/api/time', { method: 'POST', body: newTime });
     timeInput.value = '';
@@ -265,7 +265,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   }
   async function uploadFile() {
     const fileInput = document.getElementById('fileInput'); 
-    if (!fileInput.files[0]) { alert('Pilih file MIDI terlebih dahulu!'); return; }
+    if (!fileInput.files[0]) { alert('Select MIDI file first!'); return; }
 
     const formData = new FormData(); 
     formData.append("file", fileInput.files[0]);
@@ -274,13 +274,13 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     const text = await response.text();
 
     if (text === "SKIP") {
-        alert('File sudah ada di SD Card!');
+        alert('File already exists on SD Card!');
     } else if (text === "OK") {
         fileInput.value = ''; 
-        document.querySelector('label[for=\'fileInput\']').innerText = 'Pilih File MIDI';
+        document.querySelector('label[for=\'fileInput\']').innerText = 'Select MIDI File';
         loadData();
     } else {
-        alert('Gagal mengunggah file');
+        alert('Failed to upload file');
     }
   }
   async function addSolenoid() {
@@ -288,13 +288,13 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     let note = document.getElementById('sNote').value; 
     const midi = parseInt(document.getElementById('sMidi').value);
     
-    if(!pin || !midi) { alert('GPIO dan Nomor Not MIDI wajib diisi!'); return; }
+    if(!pin || !midi) { alert('GPIO and MIDI Note Number are required!'); return; }
     if(!note) note = '-';
     
     const resS = await fetch('/api/solenoids'); let solenoids = await resS.json();
     
     if (solenoids.some(s => s.pin === pin || s.midi === midi)) {
-        alert('GPIO atau Nomor Not MIDI tersebut sudah digunakan!');
+        alert('GPIO or MIDI Note Number is already used!');
         return;
     }
     
@@ -314,7 +314,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     const pass = document.getElementById('wifiPass').value;
     const enable = document.getElementById('wifiEnable').checked;
     
-    if (!ssid && enable) { alert('SSID harus diisi jika STA diaktifkan!'); return; }
+    if (!ssid && enable) { alert('SSID is required if STA is enabled!'); return; }
     
     const res = await fetch('/api/wifi', { 
         method: 'POST', 
@@ -322,11 +322,10 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     });
     
     if (res.ok) {
-        if (!isToggle) alert('Pengaturan WiFi disimpan!');
-        // Tunggu sebentar agar ESP32 selesai menulis flash, lalu refresh UI
+        // No alert if successful (except on SSID error case, handled above)
         setTimeout(loadWifi, 500);
     } else {
-        alert('Gagal menyimpan pengaturan');
+        alert('Failed to save settings');
     }
   }
   async function deleteFile(name) { await fetch('/api/files?name='+name, { method: 'DELETE' }); loadData(); }
