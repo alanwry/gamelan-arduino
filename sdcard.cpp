@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "sdcard.h"
 #include "pins.h"
 #include "player.h"
@@ -6,12 +7,11 @@ SDCardManager sdcard;
 static bool sdInserted = true;
 
 bool SDCardManager::begin() {
-  mutex = NULL; // Pastikan mutex null sebelum dicek
-
   // 1. Cek Mutex: Buat HANYA jika belum ada
   if (!mutex) {
     mutex = xSemaphoreCreateMutex();
-    if (!mutex) return false;
+    if (!mutex)
+      return false;
   }
 
   pinMode(PIN_SD_DET, INPUT_PULLUP);
@@ -31,12 +31,15 @@ bool SDCardManager::begin() {
   bool ok = false;
   for (int attempt = 0; attempt < 3; attempt++) {
     ok = SD.begin(PIN_SD_CS, SPI, 4000000);
-    if (ok) break;
+    if (ok)
+      break;
     delay(500);
   }
 
-  if (!ok) Serial.println("[SDCARD]: Error: Gagal terhubung");
-  else Serial.println("[SDCARD]: Terhubung");
+  if (!ok)
+    Serial.println("[SDCARD]: Error: Gagal terhubung");
+  else
+    Serial.println("[SDCARD]: Terhubung");
   return ok;
 }
 
@@ -54,10 +57,6 @@ void SDCardManager::update() {
     }
   }
 }
-
-bool SDCardManager::isInserted() {
-  return sdInserted;
-}
 //...
 
 void SDCardManager::scan() {
@@ -67,7 +66,8 @@ void SDCardManager::scan() {
     if (root) {
       while (true) {
         File entry = root.openNextFile();
-        if (!entry) break;
+        if (!entry)
+          break;
         if (!entry.isDirectory()) {
           String name = entry.name();
           name.toLowerCase();
@@ -76,7 +76,8 @@ void SDCardManager::scan() {
             strncpy(filenames[totalFiles], path.c_str(), MAX_FILENAME - 1);
             filenames[totalFiles][MAX_FILENAME - 1] = '\0';
             totalFiles++;
-            if (totalFiles >= MAX_FILES) break;
+            if (totalFiles >= MAX_FILES)
+              break;
           }
         }
         entry.close();
@@ -125,7 +126,7 @@ uint16_t SDCardManager::getCount() {
   return count;
 }
 
-const char* SDCardManager::getCurrentFile() {
+const char *SDCardManager::getCurrentFile() {
   static char currentFile[MAX_FILENAME];
   if (xSemaphoreTake(mutex, portMAX_DELAY)) {
     if (totalFiles == 0)
@@ -148,22 +149,25 @@ File SDCardManager::openCurrent() {
   return file;
 }
 
-File SDCardManager::openFile(const char* path, const char* mode) {
+File SDCardManager::openFile(const char *path, const char *mode) {
   File file;
   if (xSemaphoreTake(mutex, portMAX_DELAY)) {
     file = SD.open(path, mode);
-    if (file && strcmp(mode, FILE_WRITE) == 0) Serial.printf("[SDCARD]: File diunggah: %s\n", path);
+    if (file && strcmp(mode, FILE_WRITE) == 0)
+      Serial.printf("[SDCARD]: File diunggah: %s\n", path);
     xSemaphoreGive(mutex);
   }
   return file;
 }
 
-bool SDCardManager::deleteFile(const char* path) {
+bool SDCardManager::deleteFile(const char *path) {
   bool ok = false;
   if (xSemaphoreTake(mutex, portMAX_DELAY)) {
     ok = SD.remove(path);
-    if (ok) Serial.printf("[SDCARD]: File dihapus: %s\n", path);
-    else Serial.printf("[SDCARD]: Error: Gagal menghapus: %s\n", path);
+    if (ok)
+      Serial.printf("[SDCARD]: File dihapus: %s\n", path);
+    else
+      Serial.printf("[SDCARD]: Error: Gagal menghapus: %s\n", path);
     xSemaphoreGive(mutex);
   }
   return ok;

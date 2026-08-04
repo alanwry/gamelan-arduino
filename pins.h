@@ -18,11 +18,11 @@
 // SD CARD SPI
 //=========================
 
-#define SD_CS 10
+#define SD_CS 14//10
 #define PIN_SD_CS SD_CS
-#define SD_MOSI 11
-#define SD_MISO 13
-#define SD_SCK 12
+#define SD_MOSI 13//11
+#define SD_MISO 11//13
+#define SD_SCK 12//12
 
 //=========================
 // BUTTON
@@ -35,6 +35,6 @@
 #define PIN_MODE 4
 
 #define PIN_LED 48
-#define PIN_SD_DET 14
+#define PIN_SD_DET 10  //14
 
 #endif

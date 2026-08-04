@@ -4,9 +4,6 @@
 #include <Arduino.h>
 
 #define FW_VERSION "v2.0.1"
-#define COPYRIGHT_INFO "&copy; 2026 AN ELECTRONIC | Mataram, Nusa Tenggara Barat"
-#define OTA_HOSTNAME "gamelan"
-#define OTA_PASSWORD "nana1111"
 
 #define MAX_SOLENOID 20
 

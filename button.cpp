@@ -54,6 +54,7 @@ void ButtonManager::update() {
             case 1:
               stopHeld = true;
               stopPressStart = now;
+              Serial.printf("[BUTTON]: STOP hold started at %lu\n", stopPressStart);
               break;
             case 2:
               event = BTN_PREV;
@@ -71,9 +72,10 @@ void ButtonManager::update() {
         } else {  // Button Released
           pressedState[i] = false;
           if (i == 1) {  // STOP button logic
+            Serial.printf("[BUTTON]: STOP released. Duration: %lu ms\n", now - stopPressStart);
             if (now - stopPressStart < WIFI_ENABLE_MS) {
               event = BTN_STOP;
-              Serial.println("[BUTTON]: STOP ditekan");
+              Serial.println("[BUTTON]: STOP (short press) event generated");
             }
             stopHeld = false;
             stopPressStart = 0;
