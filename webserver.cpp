@@ -115,7 +115,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
 </head>
 <body>
 <div class="card">
-  <h2>Unggah File MIDI</h2>
+  <h2>Upload MIDI File</h2>
   <div class="row">
     <label for="fileInput" style="
         padding: 10px 14px; 
@@ -129,19 +129,19 @@ const char htmlPage[] PROGMEM = R"rawliteral(
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    " onclick="document.getElementById('fileInput').click()">Pilih File MIDI</label>
+    " onclick="document.getElementById('fileInput').click()">Select MIDI File</label>
     <input type="file" id="fileInput" accept=".mid,.midi" style="display:none;" onchange="document.querySelector('label[for=\'fileInput\']').innerText = this.files[0].name" />
-    <button onclick="uploadFile()" class="primary">Unggah</button>
+    <button onclick="uploadFile()" class="primary">Upload</button>
     </div>
     </div>
 <div class="card">
-  <h2>Manajer File</h2>
+  <h2>File Manager</h2>
   <table>
     <thead>
       <tr>
-        <th class="col-name left">Nama</th>
-        <th class="col-size center">Ukuran</th>
-        <th class="col-action center">Aksi</th>
+        <th class="col-name left">Name</th>
+        <th class="col-size center">Size</th>
+        <th class="col-action center">Action</th>
       </tr>
     </thead>
     <tbody id="fileBody"></tbody>
@@ -149,30 +149,30 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   <div id="storageInfo" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); text-align: center;"></div>
 </div>
 <div class="card">
-  <h2>Durasi Aktif Aktuator</h2>
+  <h2>Actuator Active Duration</h2>
   <div class="row" style="justify-content: space-between;">
-    <span>Durasi Saat Ini : <strong id="currentTime">...</strong> ms</span>
+    <span>Current Duration : <strong id="currentTime">...</strong> ms</span>
   </div>
   <div class="row">
-    <input type="number" id="sTime" placeholder="Masukkan Durasi Baru" />
-    <button onclick="saveTime()" class="primary">Simpan</button>
+    <input type="number" id="sTime" placeholder="Enter New Duration" />
+    <button onclick="saveTime()" class="primary">Save</button>
   </div>
 </div>
 <div class="card">
-<h2>Manajer Aktuator</h2>
+<h2>Actuator Manager</h2>
 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
   <input type="number" id="sPin" placeholder="GPIO" />
-  <input type="text" id="sNote" placeholder="Nada" />
-  <input type="number" id="sMidi" placeholder="Nomor Not MIDI" />
-  <button onclick="addSolenoid()" class="primary">Tambah dan Simpan</button>
+  <input type="text" id="sNote" placeholder="Note" />
+  <input type="number" id="sMidi" placeholder="MIDI Note Number" />
+  <button onclick="addSolenoid()" class="primary">Add and Save</button>
 </div>
 <table>
   <thead>
     <tr>
       <th class="col-pin left">GPIO</th>
-      <th class="col-note left">Nada</th>
+      <th class="col-note left">Note</th>
       <th class="col-midi left">MIDI</th>
-      <th class="col-s-action center">Aksi</th>
+      <th class="col-s-action center">Action</th>
     </tr>
   </thead>
   <tbody id="solenoidBody"></tbody>
@@ -182,7 +182,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
 <h2>WiFi Manager</h2>
 <div style="display: flex; flex-direction: column; gap: 10px;">
   <input type="text" id="wifiSsid" placeholder="SSID" />
-  <input type="password" id="wifiPass" placeholder="Password" />
+  <input type="text" id="wifiPass" placeholder="Password" />
   <div class="row" style="justify-content: space-between; margin-top: 5px;">
       <label style="font-size: 0.95rem; color: var(--text-muted);">Enable WiFi STA</label>
       <label class="switch">
@@ -190,7 +190,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
           <span class="slider"></span>
       </label>
   </div>
-  <button onclick="saveWifi()" class="primary">Simpan dan Terapkan</button>
+  <button onclick="saveWifi()" class="primary">Save and Apply</button>
 </div>
 </div>
 <footer style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; margin-bottom: 20px;">
