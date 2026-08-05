@@ -4,6 +4,7 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 #include "esp_wifi.h"
+#include "webserver.h"
 
 WiFiManager wifiManager;
 
@@ -66,6 +67,8 @@ bool WiFiManager::isSTAEnabled() {
 void WiFiManager::stopAll() {
   Serial.println("[WIFI]: Cleaning up WiFi stack...");
   
+  webServer.stop();
+  
   // Gentler disconnect to avoid netstack cb registration errors
   WiFi.disconnect(false, false); 
   WiFi.softAPdisconnect(false);
@@ -83,11 +86,13 @@ void WiFiManager::startAP() {
   WiFi.mode(WIFI_AP);
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   
-  if (WiFi.softAP(WIFI_SSID, WIFI_PASSWORD)) {
+  // Set AP with 4 connections
+  if (WiFi.softAP(WIFI_SSID, WIFI_PASSWORD, 1, 0, 4)) {
       Serial.println("[WIFI]: AP Mode Started successfully");
       Serial.print("[WIFI]: AP IP Address: ");
       Serial.println(WiFi.softAPIP());
       display.showStatus("AP: 192.168.4.1");
+      webServer.begin();
   } else {
       Serial.println("[WIFI]: AP Mode Failed to start");
       display.showStatus("AP START FAIL");
@@ -95,39 +100,28 @@ void WiFiManager::startAP() {
 }
 
 void WiFiManager::startSTA() {
-  if (ssid.length() == 0) {
-      Serial.println("[WIFI]: No SSID configured, cannot start STA");
-      return;
-  }
+  if (ssid.length() == 0) return;
 
-  Serial.printf("[WIFI]: Attempting to start STA. SSID: %s\n", ssid.c_str());
   stopAll();
   delay(100);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname("mydashboard");
   WiFi.begin(ssid.c_str(), password.c_str());
 
   int timeout = 0;
-  Serial.print("[WIFI]: Connecting to STA");
   display.showStatus("CONNECTING...");
-  while (WiFi.status() != WL_CONNECTED && timeout < 30) { // 15 seconds timeout
+  while (WiFi.status() != WL_CONNECTED && timeout < 30) {
     delay(500);
     timeout++;
-    Serial.print(".");
   }
-  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("[WIFI]: STA Mode Connected");
-    Serial.print("[WIFI]: IP Address: ");
-    Serial.println(WiFi.localIP());
-    
-    // Display IP on LCD Screen
     char statusBuf[17];
     snprintf(statusBuf, sizeof(statusBuf), "IP: %s", WiFi.localIP().toString().c_str());
     display.showStatus(statusBuf);
+    webServer.begin();
   } else {
-    Serial.println("[WIFI]: STA Mode Failed to connect");
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     display.showStatus("WIFI CONN FAIL");

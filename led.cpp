@@ -1,5 +1,5 @@
 #include "led.h"
-#include "button.h" // Contains 'extern Adafruit_PCF8574 pcf;'
+#include "button.h"
 #include "pins.h"
 #include "player.h"
 #include "webserver.h"
@@ -14,18 +14,37 @@ void LedController::begin() {
   pcf.pinMode(PIN_LED_RUN, OUTPUT);
   pcf.pinMode(PIN_LED_ERR, OUTPUT);
   
-  // Set all LEDs to OFF initially
   pcf.digitalWrite(PIN_LED_NET, LOW);
   pcf.digitalWrite(PIN_LED_RUN, LOW);
   pcf.digitalWrite(PIN_LED_ERR, LOW);
 }
 
 void LedController::update() {
-  if (!button.isInitialized()) return;
+  if (!button.isInitialized()) {
+    // If PCF8574 not initialized, we cannot control LEDs. System-wide error.
+    return;
+  }
 
-  // P5 (Net): ON if AP mode active or STA connected
-  bool netOn = (WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED);
-  pcf.digitalWrite(PIN_LED_NET, netOn ? HIGH : LOW);
+  static uint32_t lastBlink = 0;
+  static bool blinkState = false;
+  uint32_t now = millis();
+  
+  if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
+    // AP Mode: Fast blink
+    if (now - lastBlink >= 200) { lastBlink = now; blinkState = !blinkState; }
+    pcf.digitalWrite(PIN_LED_NET, blinkState ? HIGH : LOW);
+  } else if (WiFi.getMode() == WIFI_STA) {
+    if (WiFi.status() == WL_CONNECTED) {
+      // STA Connected: ON constant
+      pcf.digitalWrite(PIN_LED_NET, HIGH);
+    } else {
+      // STA Not Connected: Slow blink
+      if (now - lastBlink >= 1000) { lastBlink = now; blinkState = !blinkState; }
+      pcf.digitalWrite(PIN_LED_NET, blinkState ? HIGH : LOW);
+    }
+  } else {
+    pcf.digitalWrite(PIN_LED_NET, LOW);
+  }
 
   // P6 (Run): ON constant when Pause; Blinking when Play.
   if (player.isPlaying()) {
@@ -43,7 +62,11 @@ void LedController::update() {
     pcf.digitalWrite(PIN_LED_RUN, LOW);
   }
 
-  // P7 (Err): ON if there is an error
-  bool errorState = (digitalRead(PIN_SD_DET) == HIGH); 
+  // P7 (Err): ON if there is any system error
+  // Errors: SD Card not detected, or STA enabled but not connected
+  bool sdError = (digitalRead(PIN_SD_DET) == HIGH);
+  bool wifiError = (WiFi.getMode() == WIFI_STA && WiFi.status() != WL_CONNECTED);
+  
+  bool errorState = sdError || wifiError;
   pcf.digitalWrite(PIN_LED_ERR, errorState ? HIGH : LOW);
 }

@@ -29,13 +29,14 @@ void setup() {
 
   Wire.begin(LCD_SDA, LCD_SCL);
 
+  button.begin(); // Initialize PCF after button.begin()
+  
   buzzer.begin(PIN_BUZZER);
   buzzer.startup();
 
   display.begin();
   display.splash();
 
-  button.begin(); // Initializes PCF8574
   wifiManager.begin();
 
   Serial.printf("[SYSTEM]: STA Enabled status: %s\n", wifiManager.isSTAEnabled() ? "ON" : "OFF");
@@ -58,27 +59,30 @@ void setup() {
 
   display.ready();
 }
-void loop() {
 
+void loop() {
   button.update();
   sdcard.update();
 
-  static bool lastSTAEstate = false;
   static bool firstRun = true;
   bool currentSTAEstate = wifiManager.isSTAEnabled();
+  static bool lastSTAEstate = currentSTAEstate;
 
   // Jika status toggle STA berubah secara real-time via dashboard (atau saat boot)
   if (currentSTAEstate != lastSTAEstate || firstRun) {
     if (!firstRun) Serial.printf("[SYSTEM]: STA Toggle changed in real-time to: %s\n", currentSTAEstate ? "ON" : "OFF");
     lastSTAEstate = currentSTAEstate;
     firstRun = false;
-    
+
     // Hanya apply jika TIDAK sedang dalam mode AP
     if (WiFi.getMode() != WIFI_AP) {
         if (currentSTAEstate) {
-          wifiManager.startSTA();
-          if (WiFi.status() == WL_CONNECTED) {
-             webServer.begin();
+          // Hanya start jika belum konek
+          if (WiFi.status() != WL_CONNECTED) {
+            wifiManager.startSTA();
+            if (WiFi.status() == WL_CONNECTED) {
+               webServer.begin();
+            }
           }
         } else {
           wifiManager.stopAll();
@@ -101,7 +105,7 @@ void loop() {
             buzzer.wifiOff();
             delay(500);
             
-            // Setelah AP mati, jika STA toggle ON, maka coba konek STA
+            // If STA toggle ON, connect STA
             if (wifiManager.isSTAEnabled()) {
                 wifiManager.startSTA();
                 if (WiFi.status() == WL_CONNECTED) {
@@ -115,7 +119,7 @@ void loop() {
         if (WiFi.getMode() != WIFI_AP) {
             Serial.println("[SYSTEM]: Enable WiFi AP triggered (2s)");
             webServer.stop();
-            wifiManager.stopAll(); // Matikan STA jika ada
+            wifiManager.stopAll(); // Disable STA if active
             delay(500);
             
             wifiManager.startAP();
@@ -136,4 +140,5 @@ void loop() {
   solenoid.update();
   display.update();
   led.update();
+  buzzer.update();
 }

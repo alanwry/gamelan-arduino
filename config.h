@@ -3,9 +3,9 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION "v2.0.1"
+#define FW_VERSION "2.5.0"
 
-#define MAX_SOLENOID 20
+#define MAX_SOLENOID 24
 
 #define LCD_COL 16
 #define LCD_ROW 2

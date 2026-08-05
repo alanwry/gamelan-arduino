@@ -1,8 +1,8 @@
 #ifndef SOLENOID_H
 #define SOLENOID_H
 
-#include <Arduino.h>
 #include "config.h"
+#include <Arduino.h>
 
 // Solenoid individual - kontrol satu solenoid
 class Solenoid {
@@ -37,8 +37,7 @@ public:
   void addSolenoid(uint8_t pin, String note, uint8_t midiNote);
   void removeSolenoid(uint8_t pin);
   uint8_t getCount() const;
-    Solenoid*
-    getItems();
+  Solenoid *getItems();
 
 private:
   Solenoid item[MAX_SOLENOID];

@@ -162,8 +162,6 @@ void Player::toggleMode() {
   prefs.end();
 
   Serial.printf("[PLAYER]: Mode diubah ke: %s\n", autoMode ? "OTOMATIS (LOOP)" : "MANUAL");
-  if (autoMode) buzzer.modeAuto();
-  else buzzer.modeManual();
   display.showStatus(autoMode ? "AUTO MODE" : "MANUAL MODE");
 }
 

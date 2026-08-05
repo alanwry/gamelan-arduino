@@ -47,13 +47,12 @@ void ButtonManager::update() {
   for (int i = 0; i < 4; i++) {
     bool state = pcf.digitalRead(buttonPin[i]);
 
-    // Debounce logic
     if (state != lastState[i]) {
       if ((now - lastTime[i]) > BUTTON_DEBOUNCE) {
         lastState[i] = state;
         lastTime[i] = now;
 
-        if (state == LOW) {  // Button Pressed
+        if (state == LOW) {
           pressedState[i] = true;
           // MODE button is index 3 (last one), so check i != 3
           if (i != 3) buzzer.beep();
@@ -78,9 +77,9 @@ void ButtonManager::update() {
               Serial.printf("[BUTTON]: MODE hold started at %lu\n", stopPressStart);
               break;
           }
-        } else {  // Button Released
+        } else {
           pressedState[i] = false;
-          if (i == 3) {  // MODE button logic
+          if (i == 3) {
             Serial.printf("[BUTTON]: MODE released. Duration: %lu ms\n", now - stopPressStart);
             if (now - stopPressStart < WIFI_ENABLE_MS) {
               event = BTN_MODE;

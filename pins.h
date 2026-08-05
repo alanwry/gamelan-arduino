@@ -6,15 +6,12 @@
 //=========================
 // LCD
 //=========================
-
 #define LCD_SDA 8
 #define LCD_SCL 9
 
 // SD CARD SPI
 //=========================
-
-#define SD_CS 14
-#define PIN_SD_CS SD_CS
+#define PIN_SD_CS 14
 #define SD_MOSI 13
 #define SD_MISO 11
 #define SD_SCK 12

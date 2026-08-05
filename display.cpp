@@ -4,24 +4,21 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// Inisialisasi LCD I2C
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COL, LCD_ROW);
 DisplayManager display;
 
-// Inisialisasi LCD dengan I2C
 void DisplayManager::begin() {
   Wire.begin(LCD_SDA, LCD_SCL);
   Wire.beginTransmission(LCD_ADDRESS);
   if (Wire.endTransmission() == 0) {
     Serial.println("[DISPLAY]: Terhubung");
+    lcd.init();
+    lcd.backlight();
   } else {
     Serial.println("[DISPLAY]: Error: Gagal terhubung");
   }
-  lcd.init();
-  lcd.backlight();
 }
 
-// Tampilkan splash screen pada startup
 void DisplayManager::splash() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -31,7 +28,6 @@ void DisplayManager::splash() {
   delay(1500);
 }
 
-// Reset display ke state siap
 void DisplayManager::ready() {
   strcpy(songName, "NO FILE");
   strcpy(statusName, "READY");
@@ -42,7 +38,6 @@ void DisplayManager::ready() {
   lcd.clear();
 }
 
-// Tampilkan pesan error
 void DisplayManager::error(const char *msg) {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -54,7 +49,6 @@ void DisplayManager::error(const char *msg) {
   lcd.print(errMsg);
 }
 
-// Set nama file/lagu (trigger reset scrolling)
 void DisplayManager::showSong(const char *song) {
   strncpy(songName, song, 16);
   songName[16] = 0;
@@ -62,19 +56,16 @@ void DisplayManager::showSong(const char *song) {
   lastScrollTime = millis();
 }
 
-// Set status playback (READY, PLAYING, PAUSED, etc)
 void DisplayManager::showStatus(const char *status) {
   strncpy(statusName, status, 16);
   statusName[16] = 0;
 }
 
-// Set file index untuk menampilkan [x/y]
 void DisplayManager::showFileIndex(uint16_t current, uint16_t total) {
   currentFile = current;
   totalFiles = total;
 }
 
-// Kontrol scrolling untuk nama file panjang
 void DisplayManager::scrollDisplay() {
   if (strlen(songName) <= LCD_COL)
     return;
@@ -89,7 +80,7 @@ void DisplayManager::scrollDisplay() {
     scrollPos = 0;
 }
 
-// Update display setiap 250ms (dipanggil di loop utama)
+// Update display every 250ms
 void DisplayManager::update() {
   static uint32_t last = 0;
   if (millis() - last < 250)
@@ -101,10 +92,9 @@ void DisplayManager::update() {
   char displayName[17];
   uint16_t nameLen = strlen(songName);
 
-  // Format nama file dengan index [current/total]
   if (totalFiles > 0) {
     if (nameLen > 10) {
-      // Nama panjang: aktifkan scrolling
+      // Long name: enable scrolling
       if (scrollPos < nameLen - 8) {
         strncpy(displayName, songName + scrollPos, 13);
         displayName[13] = 0;
@@ -112,15 +102,13 @@ void DisplayManager::update() {
         strcpy(displayName, songName);
       }
     } else {
-      // Nama pendek: tampilkan dengan index
+      // Short name: show with index
       snprintf(displayName, 17, "%-11s[%u/%u]", songName, currentFile + 1, totalFiles);
     }
   } else {
-    // Tidak ada file: tampilkan nama saja
     strcpy(displayName, songName);
   }
 
-  // Write ke LCD (baris 1 = nama, baris 2 = status)
   lcd.setCursor(0, 0);
   lcd.print("                ");
   lcd.setCursor(0, 0);
