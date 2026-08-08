@@ -1,7 +1,6 @@
 #include "button.h"
 #include "pins.h"
 #include "config.h"
-#include "buzzer.h"
 #include <Adafruit_PCF8574.h>
 
 ButtonManager button;
@@ -38,6 +37,13 @@ uint32_t ButtonManager::getStopHoldDuration() {
   return 0;
 }
 
+// Helper untuk direct buzzer control di PCF
+void triggerBuzzer(uint16_t duration) {
+  pcf.digitalWrite(PIN_BUZZER, HIGH);
+  vTaskDelay(duration / portTICK_PERIOD_MS);
+  pcf.digitalWrite(PIN_BUZZER, LOW);
+}
+
 void ButtonManager::update() {
   if (!initialized) return;
 
@@ -54,7 +60,7 @@ void ButtonManager::update() {
 
         if (state == LOW) {
           pressedState[i] = true;
-          buzzer.beep(); // Panggil beep untuk semua tombol
+          triggerBuzzer(50); // Panggil beep untuk semua tombol
 
           switch (i) {
             case 0:

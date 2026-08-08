@@ -1,5 +1,4 @@
 #include "webserver.h"
-#include "buzzer.h"
 #include "config.h"
 #include "display.h"
 #include "pins.h"
@@ -17,8 +16,9 @@
 #include <Preferences.h>
 #include <time.h>
 
-WebServerManager webServer;
+extern void triggerBuzzer(uint16_t duration);
 
+WebServerManager webServer;
 namespace {
 httpd_handle_t server = nullptr;
 DNSServer dnsServer;
@@ -352,7 +352,7 @@ esp_err_t api_files_handler(httpd_req_t *req) {
       char name[128];
       if (httpd_query_key_value(buf, "name", name, sizeof(name)) == ESP_OK) {
         String decodedName = String(name); decodedName.replace("%20", " ");
-        if (sdcard.deleteFile(("/" + decodedName).c_str())) { Serial.printf("[WEBSERVER]: File dihapus: %s\n", name); buzzer.uploadSuccess(); needsScan = true; return httpd_resp_send(req, "OK", 2); }
+        if (sdcard.deleteFile(("/" + decodedName).c_str())) { Serial.printf("[WEBSERVER]: File dihapus: %s\n", name); needsScan = true; return httpd_resp_send(req, "OK", 2); }
       }
     }
     return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Delete Failed");
@@ -413,7 +413,7 @@ esp_err_t upload_handler(httpd_req_t *req) {
       } else if (file) file.write((uint8_t *)buf, recv_len);
     }
   }
-  if (file) { file.close(); Serial.printf("[WEBSERVER]: File diunggah: %s\n", filename.c_str()); needsScan = true; buzzer.uploadSuccess(); return httpd_resp_send(req, "OK", 2); }
+  if (file) { file.close(); Serial.printf("[WEBSERVER]: File diunggah: %s\n", filename.c_str()); needsScan = true; return httpd_resp_send(req, "OK", 2); }
   return ESP_FAIL;
 }
 
@@ -424,6 +424,7 @@ void WebServerManager::begin() {
   if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) dnsServer.start(53, "*", WiFi.softAPIP());
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = 80; config.max_uri_handlers = 20;
+  config.max_open_sockets = 7; // Tingkatkan untuk akses multi-device
   if (httpd_start(&server, &config) != ESP_OK) return;
   MDNS.end();
   delay(500);

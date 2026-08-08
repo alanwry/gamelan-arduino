@@ -7,7 +7,6 @@
 #include "sdcard.h"
 #include "solenoid.h"
 #include "esp_timer.h"
-#include "buzzer.h"
 #include <Preferences.h>
 
 Player player;
