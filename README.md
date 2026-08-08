@@ -1,81 +1,38 @@
-# gamelan-arduino
+# Gamelan SASAK (Arduino ESP32)
 
-A compact Arduino-based implementation for creating gamelan-like percussion sounds and control. This repository contains C++/Arduino sketches and supporting code to drive physical actuators or generate MIDI/audio output to emulate gamelan ensembles.
+Compact implementation for controlling Gamelan-like percussion, now optimized for ESP32 with dual-core multitasking and web-based configuration.
+
+## Key Architecture
+- **Dual-Core FreeRTOS**: Uses `xTaskCreatePinnedToCore` to separate tasks:
+  - **Core 1 (`midiTask`)**: Dedicated to high-precision MIDI processing (`player.update()`).
+  - **Core 0 (`systemTask`)**: Dedicated to system maintenance, web server (`webserver.update()`), WiFi management, button inputs, display, and buzzer notifications.
+- **Non-Blocking Buzzer**: Buzzer notifications utilize a non-blocking `timer-based` system to ensure functionality even during file I/O.
+- **Robust WiFi Management**: Implements thread-safe WiFi switching between AP and STA modes to prevent memory panics (`Guru Meditation`).
 
 ## Features
-- Play pre-programmed gamelan patterns and scales
-- Support for physical actuators (solenoids, servos, piezo buzzers) or MIDI output
-- Configurable pin mappings and timing/tempo settings
-- Simple calibration/tuning routine for physical instruments
-- Compatible with Arduino IDE, Arduino CLI, and PlatformIO
+- **MIDI Playback**: Plays MIDI files from SD card with solenoid support.
+- **Web Interface**: Manage MIDI files, configure actuator timing, solenoid mappings, and WiFi settings via browser.
+- **WiFi Connectivity**: Supports AP and STA modes for easy dashboard access.
+- **Interactive Controls**: Buttons for playback, navigation, and AP mode toggling.
+- **Status Notifications**: Audio feedback via active buzzer for system states (startup, buttons, mode changes, successful saves, firmware updates).
 
-## Hardware (example)
-The exact hardware depends on your target setup. Typical components:
-- Arduino Uno / Nano / Mega (any AVR/ARM board supported by Arduino toolchain)
-- Actuators: solenoids, small servos, or piezo buzzers
-- Driver circuitry (transistors, MOSFETs, or driver boards) for solenoids/servos
-- External power supply for actuators (do NOT power solenoids from the Arduino 5V rail)
-- Optional: MIDI breakout (DIN or USB-MIDI) or MIDI over serial/USB interface
-- Wires, protoboard, and mounting hardware
+## Hardware
+- ESP32-based controller.
+- PCF8574 I/O expander for buttons/LEDs/buzzer.
+- SD Card module for MIDI storage.
+- Solenoid actuators with driver circuitry.
+- Display (I2C) for status feedback.
 
-Refer to the wiring diagram in docs/wiring.md (or the `src/config.h` pin mappings) for the exact pin layout used by the code.
+## Configuration & Usage
+- **WiFi Mode**: Hold the `MODE` button for 2s to switch to AP mode (192.168.4.1), or 5s to switch back to STA mode (if configured).
+- **Web Dashboard**: Access `http://mydashboard.local` when connected to the system's WiFi to upload files, configure actuators, and update firmware.
+- **Buzzer Patterns**:
+  - **Startup**: 1 beep (150ms).
+  - **Buttons**: 1 short beep (50ms).
+  - **AP Mode**: 2 beeps (100ms each).
+  - **Firmware/Wifi Save**: 1 long beep (300ms).
 
-## Software requirements
-- Arduino IDE 1.8+ or Arduino CLI, or PlatformIO
-- Libraries (installed via Library Manager or PlatformIO):
-  - (Examples) MIDI, EEPROM — check the top of the main sketch for required libs
-- C++ source located in `src/` (or in the main `.ino` if single-file sketch)
-
-## Install & Build
-
-Using Arduino IDE
-1. Open the main sketch (`gamelan.ino` or similar) in Arduino IDE.
-2. Select your board and serial port (Tools → Board, Port).
-3. Click Upload.
-
-Using Arduino CLI
-1. Compile: arduino-cli compile --fqbn <board_fqbn> /path/to/repo
-2. Upload: arduino-cli upload -p /dev/ttyACM0 --fqbn <board_fqbn> /path/to/repo
-
-Using PlatformIO
-1. Install PlatformIO in VSCode.
-2. Open the project folder and update `platformio.ini` board setting.
-3. Run Build and Upload from the PlatformIO toolbar.
-
-## Configuration
-- Pin mappings, modes (MIDI vs Actuator), and timing constants are stored in a configuration header (e.g., `src/config.h`) or at the top of the main sketch.
-- Change tempo and pattern settings in `patterns/` or the corresponding source files.
-- If using external drivers, set the actuator enable/polarity in the config to match your driver board.
-
-## Usage
-- Power the Arduino and actuators (ensuring a common ground).
-- Upload the sketch.
-- Use serial monitor at configured baud (e.g., 115200) to:
-  - Start/stop patterns
-  - Trigger calibration
-  - Switch modes (MIDI / standalone)
-- Optional: Send MIDI to the Arduino to trigger notes, or have the Arduino send MIDI messages to a DAW/synth.
-
-## Calibration & Tuning
-1. Run the provided calibration routine (Serial command `calibrate`).
-2. Adjust actuator timing and strike intensity variables in `config.h`.
-3. For physical instruments, tune the fixed resonant elements (if any) mechanically or via damping materials.
-
-## Troubleshooting
-- Actuators not moving: check external power supply and driver wiring; confirm common ground.
-- Strange timing: ensure no power supply current sag; try adding decoupling caps and separate supply for actuators.
-- Serial/USB not connecting: check board selection and cable.
-
-## Contributing
-Contributions welcome. Please:
-1. Fork the repo
-2. Create a branch for your feature/fix
-3. Open a pull request with a clear description and test steps
-
-If you plan hardware changes, include wiring diagrams or photos and update docs.
-
-## License
-Choose a license for the project (e.g., MIT). Add LICENSE file to the repository.
-
-## Acknowledgements
-Inspired by traditional gamelan ensemble concepts and maker/hardware communities. Feel free to credit or link any reference projects you used.
+## Contributing & Troubleshooting
+- Ensure solid power supply for actuators (use dedicated rail).
+- If system panics occur during WiFi switching, logs usually indicate potential memory/concurrency issues; tasks are synchronized via mutexes to prevent this.
+- Maintain consistency with `config.h` pin mappings.
