@@ -40,7 +40,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   .row { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
   input { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: #0f172a; color: white; font-size: 0.95rem; flex-grow: 1; transition: border-color 0.2s; }
   input:focus { outline: none; border-color: var(--accent); }
-  button { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: opacity 0.2s; }
+  button { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.75rem; transition: opacity 0.2s; }
   button:hover { opacity: 0.9; }
   .primary { background: var(--accent); color: #0f172a; }
   .danger { background: var(--danger); color: white; }
@@ -197,7 +197,7 @@ async function uploadOta() {
   }
   function render(solenoids, files, storage) {
     const sBody = document.getElementById('solenoidBody'); sBody.innerHTML = '';
-    solenoids.forEach(s => { sBody.innerHTML += `<tr><td class="col-pin center">${s.pin}</td><td class="col-note center">${s.note}</td><td class="col-midi center">${s.midi}</td><td class="col-s-action" style="display: flex; justify-content: center; align-items: center; padding: 8px 4px;"><button class="danger" onclick="removeSolenoid(${s.pin})">Delete</button></td></tr>`; });
+    solenoids.forEach(s => { sBody.innerHTML += `<tr><td class="col-pin center">${s.pin}</td><td class="col-note center">${s.note}</td><td class="col-midi center">${s.midi}</td><td class="col-s-action center" style="display: flex; justify-content: center; align-items: center; gap: 5px; padding: 8px 4px;"><button class="primary" onclick="testSolenoid(${s.pin})">Play</button><button class="danger" onclick="removeSolenoid(${s.pin})">Delete</button></td></tr>`; });
     const fBody = document.getElementById('fileBody'); fBody.innerHTML = '';
     files.forEach(f => { fBody.innerHTML += `<tr><td class="col-name left">${f.name}</td><td class="col-size center">${formatSize(f.size)}</td><td class="col-action" style="display: flex; justify-content: center; align-items: center; padding: 8px 4px;"><button class="danger" onclick="deleteFile('${f.name}')">Delete</button></td></tr>`; });
     const sInfo = document.getElementById('storageInfo');
@@ -206,6 +206,7 @@ async function uploadOta() {
         sInfo.innerText = `Total: ${formatSize(storage.total)} | Used: ${formatSize(used)} | Free: ${formatSize(storage.free)}`;
     } else sInfo.innerText = 'SD Card not detected';
   }
+  async function testSolenoid(pin) { await fetch('/api/solenoid/test?pin='+pin, { method: 'POST' }); }
   async function saveTime() {
     const timeInput = document.getElementById('sTime'); const currentTimeText = document.getElementById('currentTime').innerText;
     const newTime = timeInput.value;
@@ -271,6 +272,23 @@ String sanitizeFilename(String filename) {
     else clean += '_';
   }
   return clean;
+}
+
+esp_err_t api_solenoid_test_handler(httpd_req_t *req) {
+  if (req->method == HTTP_POST) {
+    char buf[128];
+    size_t len = httpd_req_get_url_query_len(req);
+    if (len < sizeof(buf)) {
+      httpd_req_get_url_query_str(req, buf, len + 1);
+      char pinVal[8];
+      if (httpd_query_key_value(buf, "pin", pinVal, sizeof(pinVal)) == ESP_OK) {
+        solenoid.test(String(pinVal).toInt());
+        return httpd_resp_send(req, "OK", 2);
+      }
+    }
+    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid Pin");
+  }
+  return HTTPD_404_NOT_FOUND;
 }
 
 esp_err_t api_solenoids_handler(httpd_req_t *req) {
@@ -439,6 +457,7 @@ void WebServerManager::begin() {
   httpd_uri_t upload_uri = {"/upload", HTTP_POST, upload_handler, nullptr};
   httpd_uri_t solenoids_get_uri = {"/api/solenoids", HTTP_GET, api_solenoids_handler, nullptr};
   httpd_uri_t solenoids_post_uri = {"/api/solenoids", HTTP_POST, api_solenoids_handler, nullptr};
+  httpd_uri_t solenoid_test_uri = {"/api/solenoid/test", HTTP_POST, api_solenoid_test_handler, nullptr};
   httpd_uri_t time_get_uri = {"/api/time", HTTP_GET, api_time_handler, nullptr};
   httpd_uri_t time_post_uri = {"/api/time", HTTP_POST, api_time_handler, nullptr};
   httpd_uri_t files_get_uri = {"/api/files", HTTP_GET, api_files_handler, nullptr};
@@ -490,6 +509,7 @@ void WebServerManager::begin() {
   httpd_register_uri_handler(server, &upload_uri);
   httpd_register_uri_handler(server, &solenoids_get_uri);
   httpd_register_uri_handler(server, &solenoids_post_uri);
+  httpd_register_uri_handler(server, &solenoid_test_uri);
   httpd_register_uri_handler(server, &time_get_uri);
   httpd_register_uri_handler(server, &time_post_uri);
   httpd_register_uri_handler(server, &files_get_uri);

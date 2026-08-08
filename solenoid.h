@@ -29,6 +29,7 @@ public:
   void begin();
   void update();
   void hit(uint8_t id, uint16_t duration = 20);
+  void test(uint8_t pin); // Tambahkan ini
   void allOff();
 
   // Dynamic management
@@ -42,6 +43,7 @@ public:
 private:
   Solenoid item[MAX_SOLENOID];
   uint8_t count;
+  uint32_t lastTestTime = 0; // Tambahkan ini
 };
 
 extern SolenoidManager solenoid;

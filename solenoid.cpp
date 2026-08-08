@@ -2,6 +2,7 @@
 #include <SD.h>
 #include "config.h"
 #include "esp_timer.h"
+#include "player.h"
 
 // ===== Solenoid Individual Implementation =====
 
@@ -54,6 +55,19 @@ void SolenoidManager::begin() {
   count = 0;
   if (!loadConfig()) {
     Serial.println("[SOLENOID] No config file, using defaults");
+  }
+}
+
+void SolenoidManager::test(uint8_t pin) {
+  uint32_t now = millis();
+  if (now - lastTestTime < 1000) return; // Debounce 1 detik
+  
+  for (uint8_t i = 0; i < count; i++) {
+    if (item[i].getPin() == pin) {
+      item[i].hit(player.getSolenoidTime());
+      lastTestTime = now;
+      break;
+    }
   }
 }
 
