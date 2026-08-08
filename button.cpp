@@ -11,14 +11,14 @@ Adafruit_PCF8574 pcf;
 static const uint8_t buttonPin[4] = { PIN_PREV, PIN_PLAY_PAUSE, PIN_NEXT, PIN_MODE };
 
 void ButtonManager::begin() {
-  Serial.println("[BUTTON]: Initializing PCF8574...");
+  // Initializing PCF8574 silently
   if (!pcf.begin(PCF8574_ADDRESS, &Wire)) {
-    Serial.println("[BUTTON]: Error: PCF8574 gagal terhubung!");
+    Serial.println("[SYSTEM]: Error: PCF8574 gagal terhubung!");
     initialized = false;
     return;
   }
   
-  Serial.println("[BUTTON]: PCF8574 terhubung.");
+  Serial.println("[SYSTEM]: PCF8574 terhubung.");
   initialized = true;
 
   for (int i = 0; i < 4; i++) {
@@ -54,8 +54,7 @@ void ButtonManager::update() {
 
         if (state == LOW) {
           pressedState[i] = true;
-          // MODE button is index 3 (last one), so check i != 3
-          if (i != 3) buzzer.beep();
+          buzzer.beep(); // Panggil beep untuk semua tombol
 
           switch (i) {
             case 0:

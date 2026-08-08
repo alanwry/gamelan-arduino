@@ -12,6 +12,7 @@ public:
   void pause();
   bool isPlaying();
   bool isPaused();
+  void handleEvent(ButtonID evt); // Diganti dari update()
   void update();
   void nextFile();
   void prevFile();

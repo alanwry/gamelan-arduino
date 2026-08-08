@@ -18,7 +18,7 @@ bool SDCardManager::begin() {
   sdInserted = (digitalRead(PIN_SD_DET) == LOW);
 
   if (!sdInserted) {
-    Serial.println("[SDCARD]: Error: Kartu SD tidak terdeteksi");
+    Serial.println("[SYSTEM]: Error: Kartu SD tidak terdeteksi");
     return false;
   }
 
@@ -37,9 +37,9 @@ bool SDCardManager::begin() {
   }
 
   if (!ok)
-    Serial.println("[SDCARD]: Error: Gagal terhubung");
+    Serial.println("[SYSTEM]: Error: Modul SD card gagal terhubung (SPI)");
   else
-    Serial.println("[SDCARD]: Terhubung");
+    Serial.println("[SYSTEM]: Modul SD card terhubung (SPI)");
   return ok;
 }
 
@@ -49,10 +49,10 @@ void SDCardManager::update() {
     sdInserted = currentDetected;
     if (sdInserted) {
       if (sdcard.begin()) {
-        Serial.println("[SDCARD]: Kartu SD berhasil dibaca, melanjutkan...");
+        Serial.println("[SYSTEM]: Kartu SD terbaca (pindet)");
       }
     } else {
-      Serial.println("[SDCARD]: Kartu SD dilepas");
+      Serial.println("[SYSTEM]: Kartu SD dilepas (pindet)");
       player.stop();
     }
   }

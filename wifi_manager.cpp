@@ -1,3 +1,4 @@
+#include "buzzer.h"
 #include "wifi_manager.h"
 #include "config.h"
 #include "display.h"
@@ -21,18 +22,14 @@ void WiFiManager::loadFromPrefs() {
     password = prefs.getString("password", "");
     enableSTA = prefs.getBool("enableSTA", false);
     prefs.end();
-    Serial.printf("[WIFI]: Loaded settings - SSID: '%s', STA Enabled: %s\n", ssid.c_str(), enableSTA ? "ON" : "OFF");
+    Serial.printf("[SYSTEM]: WiFi load setting SSID: '%s', STA Enabled: %s\n", ssid.c_str(), enableSTA ? "ON" : "OFF");
   } else {
     // If failed, it might not exist. Try opening in write mode to initialize it.
-    Serial.println("[WIFI]: Namespace not found, initializing...");
     if (prefs.begin("gamelan_wifi", false)) {
         ssid = "";
         password = "";
         enableSTA = false;
         prefs.end();
-        Serial.println("[WIFI]: Preferences initialized successfully.");
-    } else {
-        Serial.println("[WIFI]: ERROR: Preferences hardware failure!");
     }
   }
 }
@@ -49,6 +46,7 @@ void WiFiManager::saveSettings(String newSsid, String newPassword, bool newEnabl
     size_t pLen = prefs.putString("password", password);
     size_t eLen = prefs.putBool("enableSTA", enableSTA);
     prefs.end();
+    buzzer.wifiSaved();
     Serial.printf("[WIFI]: Save complete (Wrote SSID: %d, Pass: %d, Enable: %d)\n", sLen, pLen, eLen);
   } else {
     Serial.println("[WIFI]: Error: Failed to open Preferences for writing");
@@ -67,11 +65,14 @@ bool WiFiManager::isSTAEnabled() {
 void WiFiManager::stopAll() {
   Serial.println("[WIFI]: Cleaning up WiFi stack...");
   
-  webServer.stop();
+  // Amankan akses ke webserver
+  if (webServer.isActive()) {
+      webServer.stop();
+  }
   
-  // Gentler disconnect to avoid netstack cb registration errors
-  WiFi.disconnect(false, false); 
-  WiFi.softAPdisconnect(false);
+  // Gentler disconnect
+  WiFi.disconnect(true); 
+  WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
 
   delay(200); 
@@ -79,31 +80,22 @@ void WiFiManager::stopAll() {
 }
 
 void WiFiManager::startAP() {
-  Serial.println("[WIFI]: Attempting to start AP Mode...");
-  stopAll();
-  delay(100);
-
+  Serial.println("[SYSTEM]: Attempting to start AP Mode...");
   WiFi.mode(WIFI_AP);
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   
-  // Set AP with 4 connections
   if (WiFi.softAP(WIFI_SSID, WIFI_PASSWORD, 1, 0, 4)) {
-      Serial.println("[WIFI]: AP Mode Started successfully");
-      Serial.print("[WIFI]: AP IP Address: ");
-      Serial.println(WiFi.softAPIP());
+      Serial.println("[SYSTEM]: AP Mode started");
       display.showStatus("AP: 192.168.4.1");
       webServer.begin();
   } else {
-      Serial.println("[WIFI]: AP Mode Failed to start");
+      Serial.println("[SYSTEM]: AP Mode Failed to start");
       display.showStatus("AP START FAIL");
   }
 }
 
 void WiFiManager::startSTA() {
   if (ssid.length() == 0) return;
-
-  stopAll();
-  delay(100);
 
   WiFi.mode(WIFI_STA);
   WiFi.setHostname("mydashboard");
@@ -121,7 +113,9 @@ void WiFiManager::startSTA() {
     snprintf(statusBuf, sizeof(statusBuf), "IP: %s", WiFi.localIP().toString().c_str());
     display.showStatus(statusBuf);
     webServer.begin();
+    Serial.println("[SYSTEM]: STA berhasil terhubung"); // Log setelah dipastikan konek
   } else {
+    Serial.println("[SYSTEM]: STA gagal terhubung");
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     display.showStatus("WIFI CONN FAIL");

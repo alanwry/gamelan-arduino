@@ -11,42 +11,30 @@ void DisplayManager::begin() {
   Wire.begin(LCD_SDA, LCD_SCL);
   Wire.beginTransmission(LCD_ADDRESS);
   if (Wire.endTransmission() == 0) {
-    Serial.println("[DISPLAY]: Terhubung");
+    Serial.println("[SYSTEM]: Display terhubung");
     lcd.init();
     lcd.backlight();
   } else {
-    Serial.println("[DISPLAY]: Error: Gagal terhubung");
+    Serial.println("[SYSTEM]: Error: Display gagal terhubung");
   }
 }
 
 void DisplayManager::splash() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("AUTO GAMELAN");
+  lcd.print("GAMELAN NUNGGAL");
   lcd.setCursor(0, 1);
-  lcd.print(FW_VERSION);
-  delay(1500);
+  lcd.print("Loading...");
 }
 
 void DisplayManager::ready() {
   strcpy(songName, "NO FILE");
-  strcpy(statusName, "READY");
+  strcpy(statusName, "STOP");
   currentFile = 0;
   totalFiles = 0;
   scrollPos = 0;
   lastScrollTime = 0;
   lcd.clear();
-}
-
-void DisplayManager::error(const char *msg) {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("ERROR");
-  lcd.setCursor(0, 1);
-  char errMsg[17];
-  strncpy(errMsg, msg, 16);
-  errMsg[16] = 0;
-  lcd.print(errMsg);
 }
 
 void DisplayManager::showSong(const char *song) {
@@ -88,34 +76,26 @@ void DisplayManager::update() {
   last = millis();
 
   scrollDisplay();
-
-  char displayName[17];
-  uint16_t nameLen = strlen(songName);
-
-  if (totalFiles > 0) {
-    if (nameLen > 10) {
-      // Long name: enable scrolling
-      if (scrollPos < nameLen - 8) {
-        strncpy(displayName, songName + scrollPos, 13);
-        displayName[13] = 0;
-      } else {
-        strcpy(displayName, songName);
-      }
-    } else {
-      // Short name: show with index
-      snprintf(displayName, 17, "%-11s[%u/%u]", songName, currentFile + 1, totalFiles);
-    }
+  
+  // Format judul agar scroll 16 karakter
+  char displaySong[17];
+  int len = strlen(songName);
+  if (len <= 16) {
+      strcpy(displaySong, songName);
   } else {
-    strcpy(displayName, songName);
+      int start = scrollPos % (len + 1);
+      int end = (start + 16 > len) ? len : start + 16;
+      strncpy(displaySong, songName + start, end - start);
+      displaySong[end-start] = 0;
   }
 
   lcd.setCursor(0, 0);
   lcd.print("                ");
   lcd.setCursor(0, 0);
-  lcd.print(displayName);
+  lcd.print(statusName);
 
   lcd.setCursor(0, 1);
   lcd.print("                ");
   lcd.setCursor(0, 1);
-  lcd.print(statusName);
+  lcd.print(displaySong);
 }

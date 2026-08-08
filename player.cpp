@@ -169,9 +169,7 @@ bool Player::isAutoMode() {
   return autoMode;
 }
 
-void Player::update() {
-  ButtonID evt = button.getEvent();
-
+void Player::handleEvent(ButtonID evt) {
   switch (evt) {
     case BTN_START:
       if (playing) pause();
@@ -189,7 +187,9 @@ void Player::update() {
       break;
     default: break;
   }
+}
 
+void Player::update() {
   if (!playing) return;
   if (sdcard.getCount() == 0) {
     stop();
@@ -212,7 +212,7 @@ void Player::update() {
     if (autoMode) {
       Serial.println("[PLAYER]: Loop: Jeda 2 detik sebelum berikutnya");
       display.showStatus("NEXT IN 2S");
-      delay(2000);
+      vTaskDelay(2000 / portTICK_PERIOD_MS);
       nextFile();
       play();
     } else {

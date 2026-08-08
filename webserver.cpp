@@ -505,7 +505,7 @@ void WebServerManager::begin() {
     httpd_register_uri_handler(server, &uri_post);
   }
   active = true;
-  Serial.println("[WEBSERVER]: Web server started successfully.");
+  Serial.println("[SYSTEM]: Webserver started");
 }
 
 void WebServerManager::update() {
@@ -516,9 +516,10 @@ void WebServerManager::update() {
 
 void WebServerManager::stop() {
   if (!active) return;
-  Serial.println("[WEBSERVER]: Stopping web server...");
+  Serial.println("[SYSTEM]: Webserver stopped");
   if (server) { httpd_stop(server); server = nullptr; }
   dnsServer.stop();
+  MDNS.end(); // Tambahkan ini
   display.showStatus("WIFI OFF");
   active = false;
 }

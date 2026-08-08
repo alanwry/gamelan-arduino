@@ -7,26 +7,26 @@ class BuzzerManager {
 public:
   void begin(uint8_t pin);
   void update();
-  void beep();
+  
+  // Fungsi untuk trigger bunyi (non-blocking)
+  void beep(uint16_t duration = 50); // General key beep
   void startup();
   void wifiOn();
   void wifiOff();
   void uploadSuccess();
-  void modeAuto();
-  void modeManual();
+  void wifiSaved();
+  
+  // Fungsi lama yang mungkin masih dipanggil, kita buat dummy atau map ke beep
+  void modeAuto() { beep(); }
+  void modeManual() { beep(); }
+
 private:
   uint8_t _pin;
-  uint32_t _startTime = 0;
-  uint32_t _duration = 0;
+  uint32_t _beepEndTime = 0;
   bool _isBuzzing = false;
   
-  // State machine untuk pola bunyi
-  struct PatternStep { uint32_t onTime; uint32_t offTime; };
-  const PatternStep* _currentPattern = nullptr;
-  int _patternLength = 0;
-  int _currentStep = 0;
-  uint32_t _stepStartTime = 0;
-  bool _isPatternPlaying = false;
+  // Internal helper untuk mulai buzzing
+  void _startBuzz(uint16_t duration);
 };
 
 extern BuzzerManager buzzer;
