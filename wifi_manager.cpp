@@ -1,4 +1,3 @@
-#include "buzzer.h"
 #include "wifi_manager.h"
 #include "config.h"
 #include "display.h"
@@ -7,12 +6,32 @@
 #include "esp_wifi.h"
 #include "webserver.h"
 
-WiFiManager wifiManager;
+extern void triggerBuzzer(uint16_t duration);
 
-WiFiManager::WiFiManager() : ssid(""), password(""), enableSTA(false) {}
+WiFiManager wifiManager;
+WiFiManager::WiFiManager() : ssid(""), password(""), enableSTA(false), isConnecting(false), connectionStart(0) {}
 
 void WiFiManager::begin() { 
   loadFromPrefs(); 
+}
+
+void WiFiManager::update() {
+  if (isConnecting) {
+    if (WiFi.status() == WL_CONNECTED) {
+      isConnecting = false;
+      char statusBuf[17];
+      snprintf(statusBuf, sizeof(statusBuf), "IP: %s", WiFi.localIP().toString().c_str());
+      display.showStatus(statusBuf);
+      webServer.begin();
+      Serial.println("[SYSTEM]: STA berhasil terhubung");
+    } else if (millis() - connectionStart > 15000) { // 15s timeout
+      isConnecting = false;
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_OFF);
+      display.showStatus("WIFI CONN FAIL");
+      Serial.println("[SYSTEM]: STA gagal terhubung");
+    }
+  }
 }
 
 void WiFiManager::loadFromPrefs() {
@@ -46,7 +65,7 @@ void WiFiManager::saveSettings(String newSsid, String newPassword, bool newEnabl
     size_t pLen = prefs.putString("password", password);
     size_t eLen = prefs.putBool("enableSTA", enableSTA);
     prefs.end();
-    buzzer.wifiSaved();
+    triggerBuzzer(400);
     Serial.printf("[WIFI]: Save complete (Wrote SSID: %d, Pass: %d, Enable: %d)\n", sLen, pLen, eLen);
   } else {
     Serial.println("[WIFI]: Error: Failed to open Preferences for writing");
@@ -74,6 +93,7 @@ void WiFiManager::stopAll() {
   WiFi.disconnect(true); 
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
+  isConnecting = false; // Reset connecting state
 
   delay(200); 
   Serial.println("[WIFI]: WiFi stack cleaned.");
@@ -101,24 +121,8 @@ void WiFiManager::startSTA() {
   WiFi.setHostname("mydashboard");
   WiFi.begin(ssid.c_str(), password.c_str());
 
-  int timeout = 0;
+  isConnecting = true;
+  connectionStart = millis();
   display.showStatus("CONNECTING...");
-  while (WiFi.status() != WL_CONNECTED && timeout < 30) {
-    delay(500);
-    timeout++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    char statusBuf[17];
-    snprintf(statusBuf, sizeof(statusBuf), "IP: %s", WiFi.localIP().toString().c_str());
-    display.showStatus(statusBuf);
-    webServer.begin();
-    Serial.println("[SYSTEM]: STA berhasil terhubung"); // Log setelah dipastikan konek
-  } else {
-    Serial.println("[SYSTEM]: STA gagal terhubung");
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    display.showStatus("WIFI CONN FAIL");
-  }
 }
 

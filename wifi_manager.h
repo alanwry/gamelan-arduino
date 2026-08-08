@@ -8,6 +8,7 @@ class WiFiManager {
 public:
   WiFiManager();
   void begin();
+  void update(); // Non-blocking state machine
 
   // Mode Control
   void startAP();
@@ -27,6 +28,8 @@ private:
   String ssid;
   String password;
   bool enableSTA;
+  bool isConnecting;
+  unsigned long connectionStart;
 
   void loadFromPrefs();
 };

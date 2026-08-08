@@ -11,8 +11,9 @@
 class SDCardManager {
 public:
   bool begin();
+  bool isDetected(); // Tambahkan ini
 
-  void update(); // Tambahkan ini
+  void update(); 
 
   void scan();
 
@@ -31,12 +32,10 @@ public:
 
 private:
   char filenames[MAX_FILES][MAX_FILENAME];
-
   uint16_t totalFiles = 0;
-
   int16_t currentIndex = 0;
-
   SemaphoreHandle_t mutex;
+  bool detected = false; // Tambahkan ini
 };
 
 extern SDCardManager sdcard;

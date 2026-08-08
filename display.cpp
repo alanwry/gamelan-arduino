@@ -14,9 +14,15 @@ void DisplayManager::begin() {
     Serial.println("[SYSTEM]: Display terhubung");
     lcd.init();
     lcd.backlight();
+    initialized = true;
   } else {
     Serial.println("[SYSTEM]: Error: Display gagal terhubung");
+    initialized = false;
   }
+}
+
+bool DisplayManager::isInitialized() {
+  return initialized;
 }
 
 void DisplayManager::splash() {

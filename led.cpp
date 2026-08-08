@@ -3,6 +3,8 @@
 #include "pins.h"
 #include "player.h"
 #include "webserver.h"
+#include "sdcard.h"
+#include "display.h"
 #include <WiFi.h>
 
 LedController led;
@@ -63,10 +65,10 @@ void LedController::update() {
   }
 
   // P7 (Err): ON if there is any system error
-  // Errors: SD Card not detected, or STA enabled but not connected
-  bool sdError = (digitalRead(PIN_SD_DET) == HIGH);
-  bool wifiError = (WiFi.getMode() == WIFI_STA && WiFi.status() != WL_CONNECTED);
+  // Errors: SD Card not detected/SPI failed, or Display failed
+  bool sdError = !sdcard.isDetected();
+  bool displayError = !display.isInitialized();
   
-  bool errorState = sdError || wifiError;
+  bool errorState = sdError || displayError;
   pcf.digitalWrite(PIN_LED_ERR, errorState ? HIGH : LOW);
 }

@@ -9,6 +9,7 @@
 class DisplayManager {
 public:
   void begin();
+  bool isInitialized(); // Tambahkan ini
   void splash();
   void ready();
   void error(const char *msg);
@@ -24,6 +25,7 @@ private:
   uint16_t totalFiles;
   uint16_t scrollPos;
   uint32_t lastScrollTime;
+  bool initialized = false; // Tambahkan ini
 };
 
 extern DisplayManager display;

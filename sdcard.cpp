@@ -19,6 +19,7 @@ bool SDCardManager::begin() {
 
   if (!sdInserted) {
     Serial.println("[SYSTEM]: Error: Kartu SD tidak terdeteksi");
+    detected = false;
     return false;
   }
 
@@ -36,10 +37,13 @@ bool SDCardManager::begin() {
     delay(500);
   }
 
-  if (!ok)
+  if (!ok) {
     Serial.println("[SYSTEM]: Error: Modul SD card gagal terhubung (SPI)");
-  else
+    detected = false;
+  } else {
     Serial.println("[SYSTEM]: Modul SD card terhubung (SPI)");
+    detected = true;
+  }
   return ok;
 }
 
@@ -50,12 +54,20 @@ void SDCardManager::update() {
     if (sdInserted) {
       if (sdcard.begin()) {
         Serial.println("[SYSTEM]: Kartu SD terbaca (pindet)");
+        detected = true;
+      } else {
+        detected = false;
       }
     } else {
       Serial.println("[SYSTEM]: Kartu SD dilepas (pindet)");
       player.stop();
+      detected = false;
     }
   }
+}
+
+bool SDCardManager::isDetected() {
+  return detected;
 }
 //...
 
